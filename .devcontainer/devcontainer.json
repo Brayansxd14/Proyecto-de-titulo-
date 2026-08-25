@@ -2,7 +2,7 @@
   "name": "Gestor Taller",
   "dockerComposeFile": "docker-compose.yml",
   "service": "backend",
-  "workspaceFolder": "/workspace",
+  "workspaceFolder": "/workspaces/Proyecto-de-titulo-",
   "forwardPorts": [3000, 5432],
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
