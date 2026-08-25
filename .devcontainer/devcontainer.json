@@ -1,0 +1,13 @@
+{
+  "name": "Gestor Taller",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "backend",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [3000, 5432],
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "18"
+    }
+  },
+  "postCreateCommand": "npm install"
+}

@@ -1,0 +1,37 @@
+version: "3.9"
+services:
+  backend:
+    build: .
+    volumes:
+      - ..:/workspace:cached
+    ports:
+      - "3000:3000"
+    environment:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_KEY: ${SUPABASE_KEY}
+    depends_on:
+      - db
+
+  frontend:
+    image: node:18-alpine
+    working_dir: /workspace/frontend
+    volumes:
+      - ../frontend:/workspace/frontend
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+      VITE_SUPABASE_KEY: ${VITE_SUPABASE_KEY}
+    depends_on:
+      - backend
+
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: tallerdb
+    ports:
+      - "5432:5432"
