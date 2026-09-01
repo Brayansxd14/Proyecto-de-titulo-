@@ -1,14 +1,21 @@
 version: "3.9"
+
 services:
   backend:
-    build: .
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    working_dir: /workspace
     volumes:
       - ..:/workspace:cached
     ports:
       - "3000:3000"
     environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://admin:admin123@db:5432/tallerdb
       SUPABASE_URL: ${SUPABASE_URL}
-      SUPABASE_KEY: ${SUPABASE_KEY}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY}
     depends_on:
       - db
 
@@ -17,12 +24,12 @@ services:
     working_dir: /workspace/frontend
     volumes:
       - ../frontend:/workspace/frontend
-    command: sh -c "npm install && npm run dev"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
     ports:
       - "5173:5173"
     environment:
-      VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
-      VITE_SUPABASE_KEY: ${VITE_SUPABASE_KEY}
+      VITE_SUPABASE_URL: ${SUPABASE_URL}
+      VITE_SUPABASE_ANON_KEY: ${SUPABASE_PUBLISHABLE_KEY}
     depends_on:
       - backend
 
@@ -35,3 +42,8 @@ services:
       POSTGRES_DB: tallerdb
     ports:
       - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
