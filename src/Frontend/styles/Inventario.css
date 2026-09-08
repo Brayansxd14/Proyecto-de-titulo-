@@ -1,0 +1,116 @@
+.inventario-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.inventario-botones button {
+  background: #1f3c88;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.inventario-botones button:hover {
+  background: #16306b;
+}
+
+/* 🔹 Panel desplegable */
+form {
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+form input,
+form select,
+form button {
+  min-width: 0;
+  max-width: 100%;
+  margin: 8px 0;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+form button {
+  background: #1f3c88;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+form button:hover {
+  background: #16306b;
+}
+
+/* 🔹 Lista de repuestos */
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+ul li {
+  background: #f4f4f4;
+  margin: 8px 0;
+  padding: 10px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+ul li button {
+  margin-left: auto;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+ul li button:hover {
+  background: #c0392b;
+}
+
+@media (max-width: 767px) {
+  .inventario-botones button {
+    flex: 1 1 100%;
+  }
+
+  .inventario-reporte input,
+  .inventario-reporte button {
+    width: 100%;
+  }
+
+  ul li {
+    align-items: flex-start;
+  }
+
+  ul li button {
+    margin-left: 0;
+  }
+}
+

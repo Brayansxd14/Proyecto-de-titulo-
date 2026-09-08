@@ -1,0 +1,145 @@
+/* Contenedor principal con sidebar */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f4f6f9; /* fondo general */
+}
+
+/* Sidebar */
+.sidebar {
+  width: 220px;
+  flex: 0 0 220px;
+  box-sizing: border-box;
+  background: #4dd2e0;
+  color: white;
+  padding: 20px;
+  transition: width 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar h2 {
+  margin-bottom: 20px;
+  font-size: 20px;
+  font-weight: bold;
+  text-align: left;
+}
+
+/* Lista de navegación */
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+}
+
+.sidebar li {
+  margin: 12px 0;
+}
+
+.sidebar a, .sidebar button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  color: rgb(6, 1, 1);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 1px;
+  border-radius: 5px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.sidebar a:hover, .sidebar button:hover {
+  background: rgba(255,255,255,0.1);
+  color: #ffcc00;
+}
+
+/* Contenido principal */
+.main-content {
+  flex: 1;
+  min-width: 0;
+  padding: 30px;
+}
+
+/* 🔹 Sidebar colapsable */
+.sidebar.collapsed {
+  width: 60px;
+}
+
+.sidebar.collapsed h2,
+.sidebar.collapsed li span {
+  display: none;
+}
+
+.sidebar {
+  position: fixed;   /* 🔹 fija la barra */
+  top: 0;
+  left: 0;
+  height: 100vh;     /* 🔹 ocupa toda la altura */
+}
+.main-content {
+  margin-left: 220px; /* 🔹 deja espacio para la barra */
+}
+.sidebar.collapsed ~ .main-content {
+  margin-left: 60px;  /* 🔹 ajusta cuando está colapsada */
+}
+
+@media (max-width: 767px) {
+  .app-layout {
+    display: block;
+  }
+
+  .sidebar,
+  .sidebar.collapsed {
+    position: relative;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    padding: 12px 14px;
+  }
+
+  .sidebar h2 {
+    margin: 0 44px 12px 0;
+    font-size: 18px;
+  }
+
+  .sidebar .toggle-btn {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    width: 36px;
+    min-height: 32px;
+  }
+
+  .sidebar ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .sidebar li {
+    margin: 0;
+  }
+
+  .sidebar a,
+  .sidebar button {
+    min-height: 38px;
+    padding: 7px 8px;
+    font-size: 14px;
+  }
+
+  .sidebar.collapsed h2,
+  .sidebar.collapsed li span {
+    display: inline;
+  }
+
+  .sidebar.collapsed ~ .main-content,
+  .main-content {
+    margin-left: 0;
+    padding: 20px 14px;
+  }
+}

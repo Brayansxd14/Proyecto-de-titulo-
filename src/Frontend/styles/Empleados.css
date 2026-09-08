@@ -1,0 +1,61 @@
+.empleados-page {
+  min-width: 0;
+}
+
+.empleados-busqueda,
+.empleados-form {
+  align-items: center;
+}
+
+.empleados-busqueda input {
+  flex: 1 1 220px;
+}
+
+.empleados-form input,
+.empleados-form button {
+  flex: 1 1 150px;
+}
+
+.empleados-form input[name="rut"] {
+  flex-basis: 130px;
+}
+
+.empleados-form button {
+  flex-grow: 0;
+}
+
+.empleados-table-wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.empleados-table-wrapper table {
+  width: 100%;
+  min-width: 700px;
+  border-collapse: collapse;
+}
+
+.empleados-table-wrapper th,
+.empleados-table-wrapper td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+.empleados-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.empleados-actions button:last-child {
+  background: #e74c3c;
+  color: white;
+  border: 0;
+}
+
+@media (max-width: 767px) {
+  .empleados-busqueda button,
+  .empleados-form button {
+    flex-basis: 100%;
+  }
+}

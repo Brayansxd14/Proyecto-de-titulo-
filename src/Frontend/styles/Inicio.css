@@ -1,0 +1,36 @@
+.inicio-container {
+  text-align: center;
+  padding: clamp(20px, 5vw, 40px);
+}
+
+.inicio-container h2 {
+  font-size: 28px;          /* 🔹 Más grande */
+  font-weight: 700;         /* 🔹 Negrita */
+  color: #1f3c88;           /* 🔹 Azul corporativo */
+  margin-bottom: 15px;
+}
+
+.inicio-container p {
+  font-size: 18px;          /* 🔹 Más legible */
+  color: #555;              /* 🔹 Gris suave */
+  margin-bottom: 30px;
+}
+
+/* Logo centrado */
+.logo-container {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center;
+}
+
+.logo {
+  width: min(250px, 70vw);
+  height: auto;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
+}
+
+.grafico-container {
+  width: 100%;
+  max-width: 760px;
+  margin: 24px auto 0;
+}

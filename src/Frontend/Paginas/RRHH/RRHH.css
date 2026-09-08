@@ -1,0 +1,245 @@
+.rrhh-page,
+.rrhh-module-page {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.rrhh-header {
+  padding: 12px 0 28px;
+}
+
+.rrhh-eyebrow {
+  margin: 0 0 8px;
+  color: #16818c;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rrhh-header h2,
+.rrhh-module-page h2 {
+  margin: 0 0 10px;
+  color: #183b56;
+  font-size: clamp(26px, 4vw, 38px);
+}
+
+.rrhh-header > p:last-child,
+.rrhh-module-page > p {
+  max-width: 680px;
+  color: #53616d;
+}
+
+.rrhh-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.rrhh-module {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 124px;
+  padding: 18px;
+  border: 1px solid #dbe5e9;
+  border-radius: 8px;
+  background: #fff;
+  color: #183b56;
+  box-shadow: 0 5px 16px rgba(24, 59, 86, 0.06);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rrhh-module:hover {
+  border-color: #4dd2e0;
+  box-shadow: 0 8px 22px rgba(24, 59, 86, 0.1);
+  text-decoration: none;
+  transform: translateY(-2px);
+}
+
+.rrhh-module-icon {
+  font-size: 25px;
+}
+
+.rrhh-module strong,
+.rrhh-module small {
+  display: block;
+}
+
+.rrhh-module strong {
+  margin-bottom: 5px;
+  font-size: 16px;
+}
+
+.rrhh-module small {
+  color: #687782;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.rrhh-module-arrow {
+  color: #16818c;
+  font-size: 20px;
+}
+
+.rrhh-note {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 22px;
+  padding: 16px 18px;
+  border-left: 4px solid #4dd2e0;
+  background: #eefbfc;
+  color: #365361;
+}
+
+.rrhh-note span {
+  font-size: 14px;
+}
+
+.rrhh-back-link {
+  display: inline-block;
+  margin-bottom: 28px;
+  color: #16818c;
+  font-weight: 600;
+}
+
+.rrhh-empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  max-width: 620px;
+  margin-top: 28px;
+  padding: 44px 24px;
+  border: 1px dashed #a9c9cf;
+  border-radius: 8px;
+  background: #f7fbfc;
+  text-align: center;
+  color: #365361;
+}
+
+.rrhh-empty-state > span {
+  color: #16818c;
+  font-size: 38px;
+}
+
+.rrhh-empty-state small {
+  max-width: 460px;
+  color: #687782;
+}
+
+.rrhh-table-wrapper {
+  max-width: 100%;
+  margin-top: 24px;
+  overflow-x: auto;
+}
+
+.rrhh-table-wrapper table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.rrhh-table-wrapper th,
+.rrhh-table-wrapper td {
+  padding: 11px 12px;
+  border-bottom: 1px solid #dbe5e9;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.rrhh-table-wrapper th {
+  background: #eefbfc;
+  color: #183b56;
+  font-size: 13px;
+}
+
+.rrhh-table-status {
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: 6px;
+  background: #f7fbfc;
+}
+
+.rrhh-table-error {
+  color: #a33a32;
+  background: #fff3f2;
+}
+
+.rrhh-data-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 24px 0 8px;
+  padding: 18px;
+  border: 1px solid #dbe5e9;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.rrhh-data-form h3 {
+  flex-basis: 100%;
+  margin: 0;
+  color: #183b56;
+}
+
+.rrhh-data-form input,
+.rrhh-data-form select {
+  min-width: 150px;
+  flex: 1 1 150px;
+  padding: 9px;
+  border: 1px solid #b9c9cf;
+  border-radius: 6px;
+}
+
+.rrhh-data-form button {
+  flex: 0 0 auto;
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 6px;
+  background: #1f3c88;
+  color: #fff;
+}
+
+.rrhh-data-form button:disabled {
+  cursor: wait;
+}
+
+.rrhh-bono-mode {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 18px;
+  color: #365361;
+  font-size: 14px;
+}
+
+.rrhh-bono-mode input {
+  min-width: auto;
+  flex: none;
+}
+
+.rrhh-table-success {
+  color: #216b45;
+  background: #effaf3;
+}
+
+@media (max-width: 900px) {
+  .rrhh-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .rrhh-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rrhh-module {
+    min-height: 100px;
+  }
+}

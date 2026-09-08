@@ -1,0 +1,47 @@
+.asistencia-qr-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 20px 0;
+  padding: 18px;
+  border: 1px solid #d7e3e8;
+  border-radius: 8px;
+  background: #f7fbfc;
+}
+
+.asistencia-qr-panel h3 {
+  margin-top: 0;
+}
+
+.asistencia-qr-panel p {
+  max-width: 620px;
+  margin-bottom: 12px;
+}
+
+.asistencia-qr-panel select {
+  width: min(100%, 360px);
+  padding: 9px;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+}
+
+.asistencia-qr-code {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  background: white;
+}
+
+@media (max-width: 767px) {
+  .asistencia-qr-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .asistencia-qr-code {
+    align-self: center;
+  }
+}
