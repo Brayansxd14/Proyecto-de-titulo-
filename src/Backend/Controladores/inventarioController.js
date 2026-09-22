@@ -1,4 +1,5 @@
 import pool from '../db.js'
+import { numberFrom, readSpreadsheet, valueFrom } from '../utils/spreadsheet.js'
 
 // Obtener todos los repuestos
 export const obtenerInventario = async (req, res) => {
@@ -144,4 +145,37 @@ export const eliminarRepuesto = async (req, res) => {
     console.error("Error al eliminar repuesto:", err.message)
     res.status(500).send('Error al eliminar repuesto')
   }
+}
+
+export const importarInventario = async (req, res) => {
+  if (!req.file) return res.status(400).json({ message: 'Selecciona un archivo Excel o CSV' })
+  const client = await pool.connect()
+  const errors = []
+  let imported = 0
+  try {
+    const rows = readSpreadsheet(req.file.buffer)
+    if (!rows.length) return res.status(400).json({ message: 'El archivo no contiene filas de datos' })
+    await client.query('BEGIN')
+    for (const [index, row] of rows.entries()) {
+      const numeroSerie = String(valueFrom(row, ['numeroserie', 'numeroserieocodigo', 'codigo', 'sku']) || '').trim()
+      const nombre = String(valueFrom(row, ['nombre', 'repuesto', 'descripcion']) || '').trim()
+      const cantidad = numberFrom(valueFrom(row, ['cantidad', 'stock']))
+      const precio = numberFrom(valueFrom(row, ['precio', 'preciounitario', 'valor']))
+      const tipo = String(valueFrom(row, ['tipo', 'categoria']) || 'Otro').trim()
+      const proveedor = String(valueFrom(row, ['proveedor']) || '').trim()
+      if (!numeroSerie || !nombre) { errors.push({ fila: index + 2, motivo: 'Faltan numero_serie/codigo y nombre' }); continue }
+      if (!Number.isFinite(cantidad) || cantidad < 0 || !Number.isFinite(precio) || precio < 0) { errors.push({ fila: index + 2, motivo: 'Cantidad o precio no válidos' }); continue }
+      await client.query(`INSERT INTO inventario (numero_serie, nombre, cantidad, precio, tipo, proveedor, estado)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (numero_serie) DO UPDATE SET nombre = EXCLUDED.nombre, cantidad = EXCLUDED.cantidad, precio = EXCLUDED.precio, tipo = EXCLUDED.tipo, proveedor = EXCLUDED.proveedor, estado = EXCLUDED.estado`,
+      [numeroSerie, nombre, cantidad, precio, tipo, proveedor, cantidad > 0 ? 'con stock' : 'sin stock'])
+      imported += 1
+    }
+    await client.query('COMMIT')
+    res.json({ imported, rejected: errors.length, errors })
+  } catch (error) {
+    await client.query('ROLLBACK')
+    console.error('Error al importar inventario:', error.message)
+    res.status(500).json({ message: `No se pudo importar el archivo: ${error.message}` })
+  } finally { client.release() }
 }

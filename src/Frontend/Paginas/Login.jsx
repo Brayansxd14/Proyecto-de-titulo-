@@ -31,7 +31,7 @@ const Login = () => {
       navigate('/inicio')
     } catch (err) {
       console.error(err)
-      setMensaje('Error en inicio de sesión')
+      setMensaje(err.response?.data?.error || 'Error en inicio de sesión')
     } finally {
       setLoading(false)
     }

@@ -1,0 +1,105 @@
+.proveedores-import-form { display: grid; grid-template-columns: 1fr minmax(220px, 320px) auto; align-items: center; gap: 14px; background: #eef4ff; border: 1px solid #cbd8ea; }
+.proveedores-import-form strong, .proveedores-import-form small { display: block; }.proveedores-import-form small { color: #64738a; margin-top: 5px; }.proveedores-import-result { margin: 0 0 20px; padding: 14px 16px; border: 1px solid #cbd8ea; border-radius: 8px; background: #fbfcff; }.proveedores-import-result strong, .proveedores-import-result span { margin-right: 16px; }.proveedores-import-result ul { margin: 10px 0 0; color: #b45309; }
+@media (max-width: 767px) { .proveedores-import-form { grid-template-columns: 1fr; } }
+.proveedores-page {
+  min-width: 0;
+}
+
+.proveedores-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.proveedores-form input,
+.proveedores-form select,
+.proveedores-form button {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.proveedores-form button {
+  flex-grow: 0;
+}
+
+.proveedores-table-wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.proveedores-table-wrapper table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+  background: white;
+}
+
+.proveedores-table-wrapper th,
+.proveedores-table-wrapper td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e5eaf1;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.proveedores-table-wrapper th {
+  background: #1f3c88;
+  color: white;
+  font-size: 12px;
+  letter-spacing: .3px;
+}
+
+.proveedores-table-wrapper tbody tr:nth-child(even) {
+  background: #f7f9fc;
+}
+
+.proveedores-table-wrapper tbody tr:hover {
+  background: #eef4ff;
+}
+
+.proveedores-table-wrapper td:nth-child(1),
+.proveedores-table-wrapper td:nth-child(3),
+.proveedores-table-wrapper td:nth-child(5) {
+  white-space: normal;
+  min-width: 150px;
+}
+
+.proveedores-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.proveedores-actions button {
+  width: 78px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 6px;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.proveedores-actions button:first-child {
+  background: #1f3c88;
+}
+
+.proveedores-actions button:first-child:hover {
+  background: #16306b;
+}
+
+.proveedores-actions button:last-child {
+  background: #e74c3c;
+}
+
+.proveedores-actions button:last-child:hover {
+  background: #c0392b;
+}
+
+@media (max-width: 767px) {
+  .proveedores-form button {
+    flex-basis: 100%;
+  }
+}

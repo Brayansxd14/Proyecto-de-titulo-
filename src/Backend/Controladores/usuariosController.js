@@ -92,14 +92,20 @@ export const eliminarUsuario = async (req, res) => {
 
 // Login de usuario
 export const loginUsuario = async (req, res) => {
-  const { email, password } = req.body
+  const email = req.body.email?.trim().toLowerCase()
+  const { password } = req.body
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Correo y contraseña son obligatorios' })
+  }
+
   try {
-    const result = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email])
-    if (result.rows.length === 0) return res.status(404).send('Usuario no encontrado')
+    const result = await pool.query('SELECT * FROM usuarios WHERE LOWER(email) = $1', [email])
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' })
 
     const usuario = result.rows[0]
     const valido = await bcrypt.compare(password, usuario.password)
-    if (!valido) return res.status(401).send('Contraseña incorrecta')
+    if (!valido) return res.status(401).json({ error: 'Contraseña incorrecta' })
 
     const token = jwt.sign(
       { rut: usuario.rut, rol: usuario.rol },

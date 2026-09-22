@@ -19,6 +19,43 @@
   background: #16306b;
 }
 
+.inventario-import-form {
+  display: grid;
+  grid-template-columns: 1fr minmax(220px, 320px) auto;
+  align-items: center;
+  gap: 14px;
+  background: #eef4ff;
+  border: 1px solid #cbd8ea;
+}
+
+.inventario-import-form strong,
+.inventario-import-form small {
+  display: block;
+}
+
+.inventario-import-form small {
+  color: #64738a;
+  margin-top: 5px;
+}
+
+.inventario-import-result {
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border: 1px solid #cbd8ea;
+  border-radius: 8px;
+  background: #fbfcff;
+}
+
+.inventario-import-result strong,
+.inventario-import-result span {
+  margin-right: 16px;
+}
+
+.inventario-import-result ul {
+  margin: 10px 0 0;
+  color: #b45309;
+}
+
 /* 🔹 Panel desplegable */
 form {
   background: #f9f9f9;
@@ -63,35 +100,104 @@ form button:hover {
   background: #16306b;
 }
 
-/* 🔹 Lista de repuestos */
-ul {
-  list-style: none;
-  padding: 0;
+.inventario-table-wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #d8e0ec;
+  border-radius: 8px;
+  background: white;
 }
 
-ul li {
-  background: #f4f4f4;
-  margin: 8px 0;
-  padding: 10px;
-  border-radius: 6px;
+.inventario-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+}
+
+.inventario-table th,
+.inventario-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e5eaf1;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.inventario-table th {
+  background: #1f3c88;
+  color: white;
+  font-size: 12px;
+  letter-spacing: .3px;
+}
+
+.inventario-table tbody tr:nth-child(even) {
+  background: #f7f9fc;
+}
+
+.inventario-table tbody tr:hover {
+  background: #eef4ff;
+}
+
+.inventario-table td:nth-child(2),
+.inventario-table td:nth-child(6) {
+  white-space: normal;
+  min-width: 160px;
+}
+
+.inventario-empty {
+  padding: 22px;
+  color: #64738a;
+  text-align: center;
+}
+
+.inventario-status {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.inventario-status.available {
+  background: #e7f7ee;
+  color: #16804c;
+}
+
+.inventario-status.empty {
+  background: #fff0ef;
+  color: #bb4037;
+}
+
+.inventario-item-actions {
   display: flex;
-  justify-content: space-between;
+  flex: 0 0 170px;
+  justify-content: flex-end;
   align-items: center;
-  flex-wrap: wrap;
   gap: 8px;
 }
 
-ul li button {
-  margin-left: auto;
-  background: #e74c3c;
-  color: white;
+.inventario-item-actions button {
+  width: 78px;
+  padding: 7px 8px;
   border: none;
-  padding: 6px 10px;
   border-radius: 6px;
+  color: white;
+  font-weight: 700;
   cursor: pointer;
 }
 
-ul li button:hover {
+.inventario-edit-button {
+  background: #1f3c88;
+}
+
+.inventario-edit-button:hover {
+  background: #16306b;
+}
+
+.inventario-delete-button {
+  background: #e74c3c;
+}
+
+.inventario-delete-button:hover {
   background: #c0392b;
 }
 
@@ -105,12 +211,13 @@ ul li button:hover {
     width: 100%;
   }
 
-  ul li {
-    align-items: flex-start;
+  .inventario-import-form {
+    grid-template-columns: 1fr;
   }
 
-  ul li button {
-    margin-left: 0;
+  .inventario-item-actions {
+    flex-basis: auto;
+    justify-content: flex-start;
   }
 }
 

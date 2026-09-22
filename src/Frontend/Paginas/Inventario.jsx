@@ -31,6 +31,7 @@ const Inventario = () => {
   })
 
   const [reporte, setReporte] = useState([])
+  const [importResult, setImportResult] = useState(null)
 
   // 🔹 Cargar inventario al inicio
   useEffect(() => {
@@ -45,7 +46,7 @@ const Inventario = () => {
     cargarInventario()
     const cargarProveedores = async () => {
       try {
-        const res = await api.get('/inventario/proveedores')
+        const res = await api.get('/proveedores')
         setProveedores(res.data)
       } catch (err) {
         console.error('Error al obtener proveedores:', err)
@@ -64,13 +65,14 @@ const Inventario = () => {
     e.preventDefault()
     try {
       const tipoFinal = form.tipo === 'otro' ? form.tipoOtro : form.tipo
+      const proveedorFinal = form.proveedor === 'otro' ? form.proveedorOtro : form.proveedor
 
       if (editando) {
-        const res = await api.put(`/inventario/${editando}`, { ...form, tipo: tipoFinal })
+        const res = await api.put(`/inventario/${editando}`, { ...form, tipo: tipoFinal, proveedor: proveedorFinal })
         setProductos(productos.map(p => p.numero_serie === editando ? res.data : p))
         setEditando(null)
       } else {
-        const res = await api.post('/inventario', { ...form, tipo: tipoFinal })
+        const res = await api.post('/inventario', { ...form, tipo: tipoFinal, proveedor: proveedorFinal })
         setProductos([...productos, res.data])
       }
 
@@ -82,7 +84,13 @@ const Inventario = () => {
 
   // 🔹 Editar repuesto
   const handleEdit = (p) => {
-    setForm({ ...p, tipoOtro: p.tipo })
+    const proveedorRegistrado = proveedores.some(proveedor => proveedor.nombre === p.proveedor)
+    setForm({
+      ...p,
+      tipoOtro: p.tipo,
+      proveedor: proveedorRegistrado ? p.proveedor : 'otro',
+      proveedorOtro: proveedorRegistrado ? '' : (p.proveedor || '')
+    })
     setEditando(p.numero_serie)
     setFormularioActivo('agregar')
   }
@@ -107,6 +115,7 @@ const Inventario = () => {
       tipo: '',
       tipoOtro: '',
       proveedor: '',
+      proveedorOtro: '',
       descripcion: ''
     })
     setEditando(null)
@@ -149,6 +158,23 @@ const Inventario = () => {
     }
   }
 
+  const importarArchivo = async (event) => {
+    event.preventDefault()
+    const archivo = event.currentTarget.elements.archivo.files[0]
+    if (!archivo) return
+    const formData = new FormData()
+    formData.append('archivo', archivo)
+    try {
+      const { data } = await api.post('/inventario/importar', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+      setImportResult(data)
+      const res = await api.get('/inventario')
+      setProductos(res.data)
+      event.currentTarget.reset()
+    } catch (error) {
+      setImportResult({ message: error.response?.data?.message || 'No se pudo importar el archivo' })
+    }
+  }
+
   return (
     <div>
       <h2>Inventario de Repuestos</h2>
@@ -164,7 +190,27 @@ const Inventario = () => {
         <button onClick={() => setFormularioActivo(formularioActivo === 'reporte' ? null : 'reporte')}>
           {formularioActivo === 'reporte' ? 'Ocultar reporte' : 'Generar reporte'}
         </button>
+        <button onClick={() => setFormularioActivo(formularioActivo === 'importar' ? null : 'importar')}>
+          {formularioActivo === 'importar' ? 'Ocultar importación' : 'Importar Excel o CSV'}
+        </button>
       </div>
+
+      {formularioActivo === 'importar' && (
+        <form onSubmit={importarArchivo} className="inventario-import-form">
+          <div>
+            <strong>Carga masiva de inventario</strong>
+            <small>Columnas: numero_serie o codigo, nombre, cantidad, precio, tipo y proveedor.</small>
+          </div>
+          <input name="archivo" type="file" accept=".csv,.xlsx,.xls" required />
+          <button type="submit">Subir datos</button>
+        </form>
+      )}
+
+      {importResult && (
+        <div className="inventario-import-result">
+          {importResult.message ? <strong>{importResult.message}</strong> : <><strong>{importResult.imported} fila(s) importada(s)</strong><span>{importResult.rejected} fila(s) rechazada(s)</span>{importResult.errors?.length > 0 && <ul>{importResult.errors.map(error => <li key={error.fila}>Fila {error.fila}: {error.motivo}</li>)}</ul>}</>}
+        </div>
+      )}
 
       {formularioActivo === 'agregar' && (
         <form onSubmit={handleSubmit} className="inventario-form">
@@ -183,8 +229,10 @@ const Inventario = () => {
           {form.tipo === 'otro' && <input name="tipoOtro" placeholder="Especifica el tipo" value={form.tipoOtro} onChange={handleChange} required />}
           <select name="proveedor" value={form.proveedor} onChange={handleChange}>
             <option value="">Selecciona proveedor</option>
-            {proveedores.map(proveedor => <option key={proveedor} value={proveedor}>{proveedor}</option>)}
+            {proveedores.map(proveedor => <option key={proveedor.id} value={proveedor.nombre}>{proveedor.nombre}</option>)}
+            <option value="otro">Otro proveedor</option>
           </select>
+          {form.proveedor === 'otro' && <input name="proveedorOtro" placeholder="Nombre del nuevo proveedor" value={form.proveedorOtro} onChange={handleChange} required />}
           <button type="submit">{editando ? 'Guardar cambios' : 'Agregar repuesto'}</button>
           {editando && <button type="button" onClick={handleClear}>Cancelar</button>}
         </form>
@@ -196,7 +244,7 @@ const Inventario = () => {
           <input placeholder="Nombre" value={filtros.nombre} onChange={e => setFiltros({ ...filtros, nombre: e.target.value })} />
           <select value={filtros.proveedor} onChange={e => setFiltros({ ...filtros, proveedor: e.target.value })}>
             <option value="">Cualquier proveedor</option>
-            {proveedores.map(proveedor => <option key={proveedor} value={proveedor}>{proveedor}</option>)}
+            {proveedores.map(proveedor => <option key={proveedor.id} value={proveedor.nombre}>{proveedor.nombre}</option>)}
           </select>
           <select value={filtros.tipo} onChange={e => setFiltros({ ...filtros, tipo: e.target.value })}>
             <option value="">Cualquier tipo</option>
@@ -224,7 +272,7 @@ const Inventario = () => {
           <input type="date" name="fechaFin" value={filtros.fechaFin} onChange={(e) => setFiltros({ ...filtros, fechaFin: e.target.value })} />
           <select name="proveedor" value={filtros.proveedor} onChange={(e) => setFiltros({ ...filtros, proveedor: e.target.value })}>
             <option value="">Cualquier proveedor</option>
-            {proveedores.map(proveedor => <option key={proveedor} value={proveedor}>{proveedor}</option>)}
+            {proveedores.map(proveedor => <option key={proveedor.id} value={proveedor.nombre}>{proveedor.nombre}</option>)}
           </select>
           <button type="submit">Generar Reporte</button>
         </form>
@@ -257,17 +305,37 @@ const Inventario = () => {
 
       {/* Lista de repuestos */}
       <h3>Lista de repuestos</h3>
-      <ul>
-        {productos.map((p) => (
-          <li key={p.numero_serie}>
-            <strong>{p.numero_serie}</strong> - {p.nombre} ({p.tipo})  
-            | {p.cantidad} unidades | ${p.precio} | Proveedor: {p.proveedor}  
-            ➝ Estado: {p.estado}
-            <button onClick={() => handleEdit(p)}>Editar</button>
-            <button onClick={() => handleDelete(p.numero_serie)}>Eliminar</button>
-          </li>
-        ))}
-      </ul>
+      <div className="inventario-table-wrapper">
+        <table className="inventario-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Repuesto</th>
+              <th>Tipo</th>
+              <th>Cantidad</th>
+              <th>Precio</th>
+              <th>Proveedor</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {productos.map((p) => (
+              <tr key={p.numero_serie}>
+                <td><strong>{p.numero_serie}</strong></td>
+                <td>{p.nombre}</td>
+                <td>{p.tipo || '-'}</td>
+                <td>{p.cantidad}</td>
+                <td>${Number(p.precio || 0).toLocaleString('es-CL')}</td>
+                <td>{p.proveedor || '-'}</td>
+                <td><span className={`inventario-status ${p.estado === 'con stock' ? 'available' : 'empty'}`}>{p.estado}</span></td>
+                <td><div className="inventario-item-actions"><button className="inventario-edit-button" onClick={() => handleEdit(p)}>Editar</button><button className="inventario-delete-button" onClick={() => handleDelete(p.numero_serie)}>Eliminar</button></div></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {productos.length === 0 && <p className="inventario-empty">No hay repuestos registrados.</p>}
+      </div>
     </div>
   )
 }

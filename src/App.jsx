@@ -8,8 +8,10 @@ import { useState } from 'react'
 import { FiLogOut } from "react-icons/fi";
 import Empleados from './Frontend/Paginas/Empleados.jsx' 
 import Asistencia from './Frontend/Paginas/Asistencia.jsx'
+import Proveedores from './Frontend/Paginas/Proveedores.jsx'
 import RRHH from './Frontend/Paginas/RRHH/RRHH.jsx'
 import RRHHModulo from './Frontend/Paginas/RRHH/RRHHModulo.jsx'
+import Taller from './Frontend/Paginas/Taller.jsx'
 
 // 🔹 Componente para proteger rutas
 const PrivateRoute = ({ children }) => {
@@ -29,8 +31,10 @@ function App() {
             <Route path="/rrhh" element={<PrivateRoute><RRHH /></PrivateRoute>} />
             <Route path="/usuarios" element={<PrivateRoute><Usuarios /></PrivateRoute>} />
             <Route path="/inventario" element={<PrivateRoute><Inventario /></PrivateRoute>} />
+            <Route path="/proveedores" element={<PrivateRoute><Proveedores /></PrivateRoute>} />
             <Route path="/empleados" element={<PrivateRoute><Empleados /></PrivateRoute>} />
             <Route path="/asistencia" element={<PrivateRoute><Asistencia /></PrivateRoute>} />
+            <Route path="/taller" element={<PrivateRoute><Taller /></PrivateRoute>} />
             <Route path="/rrhh/:modulo" element={<PrivateRoute><RRHHModulo /></PrivateRoute>} />
           </Routes>
         </div>
@@ -62,6 +66,8 @@ function Sidebar() {
         <li><Link to="/inicio">🏠<span> Inicio</span></Link></li>
         <li><Link to="/rrhh">👥<span> Recursos Humanos</span></Link></li>
         <li><Link to="/inventario">📦<span> Inventario</span></Link></li>
+        <li><Link to="/taller">🔧<span> Taller</span></Link></li>
+        <li><Link to="/proveedores">🚚<span> Proveedores</span></Link></li>
         <li>
           <button onClick={handleLogout}>
             <FiLogOut size={20} /> <span>Cerrar sesión</span>
