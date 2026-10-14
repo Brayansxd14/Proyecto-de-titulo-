@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   FiCamera,
   FiCheck,
@@ -426,7 +427,52 @@ function InvoiceRow({ invoice, entry, onOpen, onUpdate, onRemove }) {
   );
 }
 
+function WorkOrderPrintDocument({ selectedEntry, selectedClient, selectedVehicleData, selectedTotal, selectedBalance, paymentForm }) {
+  return (
+    <section className="work-order-print" aria-label="Orden de trabajo imprimible">
+      <div className="work-order-frame">
+        <div className="work-order-title">ORDEN DE TRABAJO</div>
+        <div className="work-order-grid two">
+          <span>Número de orden<strong>{selectedEntry.number}</strong></span>
+          <span>Folio<strong>{selectedEntry.id}</strong></span>
+        </div>
+        <div className="work-order-line">Lugar y fecha de expedición: <strong>{selectedEntry.date} · {selectedEntry.time}</strong></div>
+        <div className="work-order-line">Cliente: <strong>{selectedClient?.name || "Sin cliente"}{selectedClient?.rut ? ` · ${selectedClient.rut}` : ""}</strong></div>
+        <div className="work-order-grid three">
+          <span>Servicio<strong>Reparación / mantenimiento</strong></span>
+          <span>Vehículo<strong>{selectedVehicleData ? `${selectedVehicleData.brand} ${selectedVehicleData.model}` : "Sin vehículo"}</strong></span>
+          <span>Patente<strong>{selectedVehicleData?.plate || "Sin patente"}</strong></span>
+        </div>
+        <div className="work-order-grid two schedule">
+          <span>Recepción<strong>{selectedEntry.date}<br />{selectedEntry.time}</strong></span>
+          <span>Entrega<strong>Por definir</strong></span>
+        </div>
+        <div className="work-order-block"><h3>Descripción del servicio</h3><p>{selectedEntry.description || "Sin descripción"}</p></div>
+        <div className="work-order-block observations"><h3>Observaciones</h3><p>{paymentForm.observations || " "}</p></div>
+        <div className="work-order-grid three totals">
+          <span>Total a pagar<strong>{money(selectedTotal)}</strong></span>
+          <span>Adelanto<strong>{money(paymentForm.advance)}</strong></span>
+          <span>Restante<strong>{money(selectedBalance)}</strong></span>
+        </div>
+        <div className="payment-heading">Forma de pago: <strong>{paymentForm.method}</strong></div>
+        <div className="work-order-grid four payment-options"><span>Cheque</span><span>Transferencia</span><span>Depósito</span><span>Efectivo</span></div>
+        <div className="work-order-items">
+          <h3>Costos del servicio</h3>
+          {selectedEntry.items.map(item => (
+            <div key={item.itemId}>
+              <span>{item.type === "labor" ? "MO" : "REP"} · {item.name}</span>
+              <span>{item.quantity} {item.type === "labor" ? "hora(s)" : "unidad(es)"} × {money(item.price)} = <strong>{money(Number(item.quantity) * Number(item.price))}</strong></span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Taller() {
+  const navigate = useNavigate();
+  const { ordenId } = useParams();
   const [section, setSection] = useState("ingresos");
   const [clients, setClients] = useState(() =>
     readStore("taller-clients", initialClients),
@@ -453,6 +499,7 @@ function Taller() {
   const [catalogDrafts, setCatalogDrafts] = useState({});
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [selectedEntryId, setSelectedEntryId] = useState(null);
+  const [tallerLoaded, setTallerLoaded] = useState(false);
   const [showServiceDetails, setShowServiceDetails] = useState(false);
   const [notice, setNotice] = useState("");
   const [entryForm, setEntryForm] = useState({
@@ -538,6 +585,8 @@ function Taller() {
           "Backend de taller no disponible; se mantienen los datos locales.",
           error.message,
         );
+      } finally {
+        setTallerLoaded(true);
       }
     };
     loadTaller();
@@ -564,7 +613,9 @@ function Taller() {
         .includes(partSearch.toLowerCase()),
     )
     .slice(0, 5);
-  const selectedEntry = entries.find((entry) => entry.id === selectedEntryId);
+  const selectedEntry = entries.find((entry) =>
+    ordenId ? String(entry.id) === ordenId : entry.id === selectedEntryId,
+  );
   const selectedVehicleData = selectedEntry
     ? vehicles.find((vehicle) => vehicle.id === selectedEntry.vehicleId)
     : null;
@@ -1038,6 +1089,93 @@ function Taller() {
     }
   };
 
+  if (ordenId) {
+    return (
+      <main className="taller-page standalone-order-page">
+        {notice && <div className="taller-toast"><FiCheck /> {notice}</div>}
+        {!selectedEntry ? (
+          <section className="standalone-order-state">
+            <h1>{tallerLoaded ? "Orden no encontrada" : "Cargando orden..."}</h1>
+            <button className="secondary-button" onClick={() => navigate("/taller")}>
+              Volver al taller
+            </button>
+          </section>
+        ) : (
+          <>
+            <header className="standalone-order-header">
+              <button className="secondary-button" onClick={() => navigate("/taller")}>
+                <FiChevronRight className="back-chevron" /> Volver a ingresos
+              </button>
+              <div>
+                <span className="eyebrow">ORDEN DE TRABAJO</span>
+                <h1>{selectedEntry.number}</h1>
+                <p>{selectedClient?.name || "Cliente sin asignar"} · {selectedVehicleData?.plate || "Sin patente"}</p>
+              </div>
+              <button className="primary-button" onClick={printWorkOrder}>
+                <FiPrinter /> Imprimir orden
+              </button>
+            </header>
+
+            <div className="standalone-order-grid">
+              <section className="panel standalone-order-editor">
+                <div className="standalone-order-meta">
+                  <div><small>VEHÍCULO</small><strong>{selectedVehicleData ? `${selectedVehicleData.brand} ${selectedVehicleData.model}` : "Sin vehículo"}</strong><span>{selectedVehicleData?.plate || "Sin patente"}</span></div>
+                  <div><small>FECHA DE INGRESO</small><strong>{String(selectedEntry.date).slice(0, 10)}</strong><span>{selectedEntry.time}</span></div>
+                  <label><small>ESTADO DE LA ORDEN</small><select value={selectedEntry.status} onChange={event => updateSelectedEntry({ status: event.target.value })}><option>Pendiente</option><option>En reparación</option><option>Esperando repuestos</option><option>Listo</option><option>Cerrado</option></select></label>
+                </div>
+                <label className="standalone-description">
+                  Detalle del servicio
+                  <textarea value={selectedEntry.description} onChange={event => updateSelectedEntry({ description: event.target.value })} placeholder="Describe el trabajo solicitado y el diagnóstico..." />
+                </label>
+
+                <CatalogAddPanel
+                  laborSearch={laborSearch}
+                  setLaborSearch={setLaborSearch}
+                  matchingLabor={matchingLabor}
+                  partSearch={partSearch}
+                  setPartSearch={setPartSearch}
+                  matchingParts={matchingParts}
+                  catalogDraft={catalogDraft}
+                  updateCatalogDraft={updateCatalogDraft}
+                  addCatalogItem={addCatalogItem}
+                  createCustomLabor={createCustomLabor}
+                  createCustomPart={createCustomPart}
+                  className="standalone-catalog"
+                />
+              </section>
+
+              <section className="panel standalone-costs">
+                <div className="panel-heading">
+                  <div><span className="eyebrow">COSTOS</span><h2>Trabajos y repuestos</h2></div>
+                  <span className="count-label">{selectedEntry.items.length} conceptos</span>
+                </div>
+                <div className="standalone-cost-list">
+                  {selectedEntry.items.map(item => (
+                    <div className="standalone-cost-row" key={item.itemId}>
+                      <div><strong>{item.name}</strong><small>{item.type === "labor" ? "Mano de obra" : "Repuesto"} · {item.code || "Sin código"}</small></div>
+                      <label>Precio<input type="number" min="0" value={item.price} onChange={event => updateItem(item.itemId, { price: event.target.value })} /></label>
+                      <label>{item.type === "labor" ? "Horas" : "Cantidad"}<input type="number" min={item.type === "labor" ? "0.25" : "1"} step={item.type === "labor" ? "0.25" : "1"} value={item.quantity} onChange={event => updateItem(item.itemId, { quantity: event.target.value })} /></label>
+                      <strong className="standalone-cost-total">{money(Number(item.price) * Number(item.quantity))}</strong>
+                      <button className="icon-button danger" title="Quitar concepto" onClick={() => removeItem(item.itemId)}><FiX /></button>
+                    </div>
+                  ))}
+                  {!selectedEntry.items.length && <div className="empty-inline">Todavía no hay conceptos. Agrégalos desde el catálogo.</div>}
+                </div>
+                <div className="standalone-total-row"><span>Total de la orden</span><strong>{money(selectedTotal)}</strong></div>
+                <div className="payment-editor standalone-payment">
+                  <label>Adelanto<input type="number" min="0" value={paymentForm.advance} onChange={event => setPaymentForm({ ...paymentForm, advance: event.target.value })} /></label>
+                  <label>Forma de pago<select value={paymentForm.method} onChange={event => setPaymentForm({ ...paymentForm, method: event.target.value })}><option>Efectivo</option><option>Cheque</option><option>Transferencia</option><option>Depósito</option></select></label>
+                  <label className="wide">Observaciones<textarea value={paymentForm.observations} onChange={event => setPaymentForm({ ...paymentForm, observations: event.target.value })} placeholder="Notas para la orden impresa" /></label>
+                </div>
+              </section>
+            </div>
+            <WorkOrderPrintDocument selectedEntry={selectedEntry} selectedClient={selectedClient} selectedVehicleData={selectedVehicleData} selectedTotal={selectedTotal} selectedBalance={selectedBalance} paymentForm={paymentForm} />
+          </>
+        )}
+      </main>
+    );
+  }
+
   return (
     <main className="taller-page">
       {notice && (
@@ -1070,9 +1208,9 @@ function Taller() {
             <>
               <button
                 className="secondary-button"
-                onClick={() => setShowServiceDetails(true)}
+                onClick={() => navigate(`/taller/orden/${selectedEntry.id}`)}
               >
-                <FiEdit3 /> Modificar orden
+                <FiEdit3 /> Abrir orden de trabajo
               </button>
               <button className="secondary-button" onClick={printWorkOrder}>
                 <FiPrinter /> Imprimir orden
@@ -1953,11 +2091,7 @@ function Taller() {
                 invoice={invoice}
                 entry={entries.find((item) => item.id === invoice.entryId)}
                 onUpdate={updateInvoice}
-                onOpen={() => {
-                  setSection("ingresos");
-                  setSelectedEntryId(invoice.entryId);
-                  setShowServiceDetails(false);
-                }}
+                onOpen={() => navigate(`/taller/orden/${invoice.entryId}`)}
                 onRemove={removeDocument}
               />
             ))}
@@ -2424,6 +2558,22 @@ function Taller() {
                     ))}
                 </div>
               </div>
+              <section className="service-description-editor">
+                <div>
+                  <span className="eyebrow">DETALLE DEL SERVICIO</span>
+                  <p>Describe el trabajo que se realizará antes de revisar sus costos.</p>
+                </div>
+                <label>
+                  Descripción del trabajo
+                  <textarea
+                    value={selectedEntry.description}
+                    onChange={(event) =>
+                      updateSelectedEntry({ description: event.target.value })
+                    }
+                    required
+                  />
+                </label>
+              </section>
               <table className="service-items-table">
                 <thead>
                   <tr>
@@ -2479,18 +2629,6 @@ function Taller() {
                   placeholder="Escribe observaciones del servicio"
                 />
               </div>
-              <section className="service-description-editor">
-                <label>
-                  Descripción del trabajo
-                  <textarea
-                    value={selectedEntry.description}
-                    onChange={(event) =>
-                      updateSelectedEntry({ description: event.target.value })
-                    }
-                    required
-                  />
-                </label>
-              </section>
             </div>
           </section>
         )}

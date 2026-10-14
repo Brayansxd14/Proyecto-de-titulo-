@@ -1,31 +1,48 @@
-/* Contenedor principal con sidebar */
 .app-layout {
   display: flex;
   min-height: 100vh;
-  background: #f4f6f9; /* fondo general */
+  background: #edf3f8;
 }
 
-/* Sidebar */
 .sidebar {
-  width: 220px;
-  flex: 0 0 220px;
+  width: 240px;
+  flex: 0 0 240px;
   box-sizing: border-box;
-  background: #4dd2e0;
+  background: linear-gradient(180deg, #0f8bc6 0%, #0d6ebe 100%);
   color: white;
-  padding: 20px;
+  padding: 18px 14px 18px 18px;
   transition: width 0.3s ease;
   display: flex;
   flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  box-shadow: inset -1px 0 0 rgba(255,255,255,0.12);
 }
 
 .sidebar h2 {
-  margin-bottom: 20px;
-  font-size: 20px;
-  font-weight: bold;
+  margin: 4px 0 20px;
+  font-size: 21px;
+  font-weight: 800;
   text-align: left;
+  color: white;
+  letter-spacing: -0.4px;
 }
 
-/* Lista de navegación */
+.sidebar .toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.08);
+  color: white;
+  margin-left: auto;
+  margin-bottom: 14px;
+}
+
 .sidebar ul {
   list-style: none;
   padding: 0;
@@ -34,7 +51,7 @@
 }
 
 .sidebar li {
-  margin: 12px 0;
+  margin: 6px 0;
 }
 
 .sidebar a, .sidebar button {
@@ -42,50 +59,37 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  color: rgb(6, 1, 1);
+  color: rgba(255,255,255,0.9);
   text-decoration: none;
-  background: none;
+  background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 16px;
-  padding: 1px;
-  border-radius: 5px;
-  transition: background 0.2s ease, color 0.2s ease;
+  font-size: 15px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  font-weight: 600;
 }
 
-.sidebar a:hover, .sidebar button:hover {
-  background: rgba(255,255,255,0.1);
-  color: #ffcc00;
+.sidebar a:hover, .sidebar button:hover,
+.sidebar a.active {
+  background: rgba(255,255,255,0.12);
+  color: white;
+  transform: translateX(2px);
 }
 
-/* Contenido principal */
-.main-content {
-  flex: 1;
-  min-width: 0;
-  padding: 30px;
+.sidebar a.active {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
 }
 
-/* 🔹 Sidebar colapsable */
 .sidebar.collapsed {
-  width: 60px;
+  width: 76px;
+  flex-basis: 76px;
 }
 
 .sidebar.collapsed h2,
 .sidebar.collapsed li span {
   display: none;
-}
-
-.sidebar {
-  position: fixed;   /* 🔹 fija la barra */
-  top: 0;
-  left: 0;
-  height: 100vh;     /* 🔹 ocupa toda la altura */
-}
-.main-content {
-  margin-left: 220px; /* 🔹 deja espacio para la barra */
-}
-.sidebar.collapsed ~ .main-content {
-  margin-left: 60px;  /* 🔹 ajusta cuando está colapsada */
 }
 
 @media (max-width: 767px) {
@@ -100,6 +104,7 @@
     height: auto;
     min-height: 0;
     padding: 12px 14px;
+    flex-basis: auto;
   }
 
   .sidebar h2 {
@@ -135,11 +140,5 @@
   .sidebar.collapsed h2,
   .sidebar.collapsed li span {
     display: inline;
-  }
-
-  .sidebar.collapsed ~ .main-content,
-  .main-content {
-    margin-left: 0;
-    padding: 20px 14px;
   }
 }

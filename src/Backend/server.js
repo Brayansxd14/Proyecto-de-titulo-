@@ -13,6 +13,7 @@ import adminRoutes from './Rutas_Backend/adminRoutes.js'
 import rrhhRoutes from './Rutas_Backend/rrhhRoutes.js'
 import proveedoresRoutes from './Rutas_Backend/proveedoresRoutes.js'
 import tallerRoutes from './Rutas_Backend/tallerRoutes.js'
+import facturacionRoutes from './Rutas_Backend/facturacionRoutes.js'
 
 
 dotenv.config()
@@ -36,6 +37,7 @@ app.use('/api', adminRoutes)
 app.use('/api', rrhhRoutes)
 app.use('/api', proveedoresRoutes)
 app.use('/api', tallerRoutes)
+app.use('/api', facturacionRoutes)
 app.use('/uploads', express.static('uploads'))
 
 const PORT = process.env.PORT || 3000

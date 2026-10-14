@@ -2,6 +2,7 @@ import express from 'express'
 import multer from 'multer'
 import path from 'node:path'
 import { agregarItem, actualizarFactura, actualizarIngreso, actualizarItem, crearCliente, crearDocumento, crearIngreso, crearManoObra, crearVehiculo, eliminarDocumento, eliminarItem, importarClientes, importarVehiculos, obtenerTaller, prepararCarpetaFotos, subirFoto } from '../Controladores/tallerController.js'
+import { crearFactura } from '../Controladores/facturacionController.js'
 
 const router = express.Router()
 const storage = multer.diskStorage({
@@ -25,7 +26,7 @@ router.patch('/taller/ingresos/:id/items/:itemId', actualizarItem)
 router.delete('/taller/ingresos/:id/items/:itemId', eliminarItem)
 router.post('/taller/ingresos/:id/presupuesto', crearDocumento('presupuesto'))
 router.delete('/taller/presupuestos/:id', eliminarDocumento('presupuesto'))
-router.post('/taller/ingresos/:id/factura', crearDocumento('factura'))
+router.post('/taller/ingresos/:id/factura', crearFactura)
 router.patch('/taller/facturas/:id', actualizarFactura)
 router.delete('/taller/facturas/:id', eliminarDocumento('factura'))
 router.post('/taller/ingresos/:id/fotos', upload.single('foto'), subirFoto)

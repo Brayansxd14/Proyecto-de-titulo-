@@ -17,17 +17,36 @@ const Proveedores = () => {
   const [form, setForm] = useState(formularioInicial)
   const [editando, setEditando] = useState(null)
   const [importResult, setImportResult] = useState(null)
+  const [errorCarga, setErrorCarga] = useState('')
+  const [cargando, setCargando] = useState(true)
 
   const cargarProveedores = async () => {
-    const res = await api.get('/proveedores')
-    setProveedores(res.data)
+    setCargando(true)
+    try {
+      const res = await api.get('/proveedores')
+      setProveedores(res.data)
+      setErrorCarga('')
+    } catch {
+      setErrorCarga('No se pudieron cargar los proveedores. Revisa la conexión con la base de datos.')
+    } finally {
+      setCargando(false)
+    }
   }
 
   useEffect(() => {
-    const cargarInicial = async () => {
-      await cargarProveedores()
-    }
-    cargarInicial()
+    let active = true
+    api.get('/proveedores')
+      .then(res => {
+        if (active) setProveedores(res.data)
+      })
+      .catch(() => {
+        if (active) setErrorCarga('No se pudieron cargar los proveedores. Revisa la conexión con la base de datos.')
+      })
+      .finally(() => {
+        if (active) setCargando(false)
+      })
+
+    return () => { active = false }
   }, [])
 
   const actualizarCampo = (e) => {
@@ -41,14 +60,19 @@ const Proveedores = () => {
 
   const guardar = async (e) => {
     e.preventDefault()
-    if (editando) {
-      const res = await api.put(`/proveedores/${editando}`, form)
-      setProveedores(proveedores.map(proveedor => proveedor.id === editando ? res.data : proveedor))
-    } else {
-      const res = await api.post('/proveedores', form)
-      setProveedores([...proveedores, res.data].sort((a, b) => a.nombre.localeCompare(b.nombre)))
+    try {
+      if (editando) {
+        const res = await api.put(`/proveedores/${editando}`, form)
+        setProveedores(proveedores.map(proveedor => proveedor.id === editando ? res.data : proveedor))
+      } else {
+        const res = await api.post('/proveedores', form)
+        setProveedores([...proveedores, res.data].sort((a, b) => a.nombre.localeCompare(b.nombre)))
+      }
+      setErrorCarga('')
+      limpiar()
+    } catch {
+      setErrorCarga('No se pudo guardar el proveedor. Revisa la conexión con la base de datos e inténtalo de nuevo.')
     }
-    limpiar()
   }
 
   const editar = (proveedor) => {
@@ -66,8 +90,13 @@ const Proveedores = () => {
 
   const eliminar = async (id) => {
     if (!window.confirm('¿Eliminar este proveedor?')) return
-    await api.delete(`/proveedores/${id}`)
-    setProveedores(proveedores.filter(proveedor => proveedor.id !== id))
+    try {
+      await api.delete(`/proveedores/${id}`)
+      setProveedores(proveedores.filter(proveedor => proveedor.id !== id))
+      setErrorCarga('')
+    } catch {
+      setErrorCarga('No se pudo eliminar el proveedor. Revisa la conexión con la base de datos e inténtalo de nuevo.')
+    }
   }
 
   const importarArchivo = async (event) => {
@@ -90,6 +119,7 @@ const Proveedores = () => {
     <div className="proveedores-page">
       <h2>Proveedores</h2>
       <p>Administra los proveedores disponibles para el inventario.</p>
+      {errorCarga && <div className="proveedores-load-error" role="alert"><span>{errorCarga}</span><button type="button" onClick={cargarProveedores} disabled={cargando}>{cargando ? 'Conectando...' : 'Reintentar'}</button></div>}
 
       <form className="proveedores-import-form" onSubmit={importarArchivo}>
         <div><strong>Importar proveedores</strong><small>Columnas: nombre, rut, contacto, telefono, email, direccion y estado.</small></div>
@@ -143,7 +173,8 @@ const Proveedores = () => {
             ))}
           </tbody>
         </table>
-        {proveedores.length === 0 && <p>No hay proveedores registrados.</p>}
+        {cargando && <p>Cargando proveedores...</p>}
+        {!cargando && !errorCarga && proveedores.length === 0 && <p>No hay proveedores registrados.</p>}
       </div>
     </div>
   )

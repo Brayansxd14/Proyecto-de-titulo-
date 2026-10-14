@@ -80,7 +80,7 @@ export const buscarInventario = async (req, res) => {
     res.json(result.rows)
   } catch (err) {
     console.error('Error al buscar inventario:', err.message)
-    res.status(400).send('Error al buscar inventario')
+    res.status(500).send('Error al buscar inventario')
   }
 }
 

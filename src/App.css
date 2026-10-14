@@ -1,7 +1,14 @@
 /* Estilos globales de la aplicación */
 :root {
-  --page-background: #f4f6f9;
-  --primary: #1f3c88;
+  --page-background: #edf3f8;
+  --panel-background: #ffffff;
+  --panel-border: #e5edf5;
+  --primary: #0f8bc6;
+  --primary-dark: #0d6ebe;
+  --primary-soft: #eaf7ff;
+  --ink: #1f2a37;
+  --muted: #607089;
+  --shadow: 0 12px 28px rgba(15, 55, 95, 0.08);
 }
 
 * {
@@ -13,60 +20,92 @@ body,
 #root {
   min-width: 0;
   width: 100%;
+  min-height: 100%;
 }
 
 body {
+  margin: 0;
   overflow-x: hidden;
+  background: var(--page-background);
+  color: var(--ink);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .App {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: var(--page-background);
   min-height: 100vh;
-  color: #333;
-  margin: 0;
-  padding: 0;
+  background: var(--page-background);
 }
 
 /* Encabezados generales */
 h1, h2, h3 {
-  font-weight: 600;
-  color: var(--primary);
-  margin-bottom: 15px;
+  margin: 0 0 12px;
+  color: var(--ink);
+  font-weight: 700;
+  letter-spacing: -0.03em;
 }
+
+h1 { font-size: clamp(2rem, 2.8vw, 2.8rem); }
+h2 { font-size: clamp(1.4rem, 1.8vw, 2rem); }
+h3 { font-size: 1.1rem; }
 
 /* Párrafos */
 p {
-  font-size: 16px;
-  color: #555;
-  line-height: 1.5;
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
 }
 
 /* Botones generales */
 button {
   font-family: inherit;
   cursor: pointer;
-  border-radius: 6px;
-  transition: background 0.2s ease;
+  border-radius: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
 }
 
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
 /* Links generales */
 a {
   text-decoration: none;
-  color: #1f3c88;
+  color: var(--primary-dark);
 }
 
 a:hover {
-  text-decoration: underline;
+  text-decoration: none;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 30px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .main-content > * {
+  width: min(100%, 1280px);
+  margin: 0 auto;
   max-width: 100%;
+}
+
+.main-content section,
+.main-content .panel,
+.main-content .page-card {
+  background: var(--panel-background);
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
 }
 
 .main-content table {
@@ -77,28 +116,71 @@ a:hover {
 }
 
 .main-content form:not(.login-card form) {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  width: 100%;
+  align-items: end;
+}
+
+.main-content form:not(.login-card form) > * {
+  min-width: 0;
 }
 
 .main-content form:not(.login-card form) input,
 .main-content form:not(.login-card form) select,
+.main-content form:not(.login-card form) textarea,
 .main-content form:not(.login-card form) button {
+  width: 100%;
   min-width: 0;
   max-width: 100%;
 }
 
-@media (max-width: 767px) {
-  h1 {
-    font-size: 30px;
-  }
+.main-content .primary-button,
+.main-content .secondary-button,
+.main-content button[type="submit"],
+.main-content button[class*="primary"],
+.main-content button[class*="secondary"] {
+  min-height: 42px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 12px;
+  font-weight: 700;
+}
 
-  h2 {
-    font-size: 22px;
-  }
+.main-content .primary-button,
+.main-content button[type="submit"],
+.main-content button[class*="primary"] {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  box-shadow: 0 10px 18px rgba(15, 139, 198, 0.18);
+}
+
+.main-content .secondary-button,
+.main-content button[class*="secondary"] {
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+
+.main-content .panel-heading,
+.main-content .header-actions,
+.main-content .service-document-head,
+.main-content .standalone-order-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+@media (max-width: 767px) {
+  h1 { font-size: 30px; }
+  h2 { font-size: 22px; }
 
   .main-content {
     padding: 20px 14px;
+  }
+
+  .main-content form:not(.login-card form) {
+    grid-template-columns: 1fr;
   }
 }
