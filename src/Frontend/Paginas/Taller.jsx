@@ -16,6 +16,12 @@ import {
 } from "react-icons/fi";
 import api from "../services/api";
 import "../styles/Taller.css";
+import FacturasSection from "./Taller/sections/FacturasSection.jsx";
+import PresupuestosSection from "./Taller/sections/PresupuestosSection.jsx";
+import RepuestosSection from "./Taller/sections/RepuestosSection.jsx";
+import ManoObraSection from "./Taller/sections/ManoObraSection.jsx";
+import ClientesVehiculosSection from "./Taller/sections/ClientesVehiculosSection.jsx";
+import OrdenItemsSection from "./Taller/sections/OrdenItemsSection.jsx";
 
 const initialClients = [
   {
@@ -92,12 +98,7 @@ const initialLabor = [
 
 const initialParts = [
   { id: 1, name: "Filtro de aceite Volvo", code: "FIL-V-001", price: 18900 },
-  {
-    id: 2,
-    name: "Kit de pastillas de freno",
-    code: "FRE-K-002",
-    price: 125000,
-  },
+  { id: 2, name: "Kit de pastillas de freno", code: "FRE-K-002", price: 125000 },
   { id: 3, name: "Aceite motor 15W40 (20L)", code: "ACE-15-003", price: 78000 },
 ];
 
@@ -126,20 +127,11 @@ function CatalogAddPanel({
   createCustomPart,
   className = "",
 }) {
-  const [customLabor, setCustomLabor] = useState({
-    name: "",
-    code: "",
-    price: "",
-    quantity: "1",
-  });
-  const [customPart, setCustomPart] = useState({
-    name: "",
-    code: "",
-    price: "",
-    quantity: "1",
-  });
+  const [customLabor, setCustomLabor] = useState({ name: "", code: "", price: "", quantity: "1" });
+  const [customPart, setCustomPart] = useState({ name: "", code: "", price: "", quantity: "1" });
   const noLaborMatch = laborSearch && matchingLabor.length === 0;
   const noPartMatch = partSearch && matchingParts.length === 0;
+
   return (
     <div className={`catalog-add-panel ${className}`}>
       <div className="catalog-add-header">
@@ -153,110 +145,28 @@ function CatalogAddPanel({
         <strong>Mano de obra</strong>
         <div className="catalog-search">
           <FiSearch />
-          <input
-            value={laborSearch}
-            onChange={(event) => setLaborSearch(event.target.value)}
-            placeholder="Código o nombre de mano de obra"
-          />
+          <input value={laborSearch} onChange={(event) => setLaborSearch(event.target.value)} placeholder="Código o nombre de mano de obra" />
         </div>
-        {laborSearch &&
-          matchingLabor.map((item) => {
-            const draft = catalogDraft(item);
-            return (
-              <div className="catalog-add-row" key={`labor-${item.id}`}>
-                <div>
-                  <b>{item.name}</b>
-                  <small>
-                    {item.code || "Sin código"} · Mano de obra por hora
-                  </small>
-                </div>
-                <label>
-                  Precio / h
-                  <input
-                    aria-label={`Precio por hora de ${item.name}`}
-                    type="number"
-                    min="0"
-                    value={draft.price}
-                    onChange={(event) =>
-                      updateCatalogDraft(item, "price", event.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  Horas
-                  <input
-                    aria-label={`Horas de ${item.name}`}
-                    type="number"
-                    min="0.25"
-                    step="0.25"
-                    value={draft.quantity}
-                    onChange={(event) =>
-                      updateCatalogDraft(item, "quantity", event.target.value)
-                    }
-                  />
-                </label>
-                <strong>
-                  {money(Number(draft.price) * Number(draft.quantity))}
-                </strong>
-                <button
-                  type="button"
-                  className="primary-button"
-                  onClick={() => addCatalogItem(item, "labor")}
-                >
-                  <FiPlus /> Agregar
-                </button>
-              </div>
-            );
-          })}
+        {laborSearch && matchingLabor.map((item) => {
+          const draft = catalogDraft(item);
+          return (
+            <div className="catalog-add-row" key={`labor-${item.id}`}>
+              <div><b>{item.name}</b><small>{item.code || "Sin código"} · Mano de obra por hora</small></div>
+              <label>Precio / h<input aria-label={`Precio por hora de ${item.name}`} type="number" min="0" value={draft.price} onChange={(event) => updateCatalogDraft(item, "price", event.target.value)} /></label>
+              <label>Horas<input aria-label={`Horas de ${item.name}`} type="number" min="0.25" step="0.25" value={draft.quantity} onChange={(event) => updateCatalogDraft(item, "quantity", event.target.value)} /></label>
+              <strong>{money(Number(draft.price) * Number(draft.quantity))}</strong>
+              <button type="button" className="primary-button" onClick={() => addCatalogItem(item, "labor")}><FiPlus /> Agregar</button>
+            </div>
+          );
+        })}
         {noLaborMatch && (
-          <form
-            className="custom-catalog-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              createCustomLabor(customLabor);
-              setCustomLabor({ name: "", code: "", price: "", quantity: "1" });
-            }}
-          >
+          <form className="custom-catalog-form" onSubmit={(event) => { event.preventDefault(); createCustomLabor(customLabor); setCustomLabor({ name: "", code: "", price: "", quantity: "1" }); }}>
             <b>No existe. Agregar mano de obra nueva</b>
-            <input
-              required
-              placeholder="Nombre de la mano de obra"
-              value={customLabor.name}
-              onChange={(event) =>
-                setCustomLabor({ ...customLabor, name: event.target.value })
-              }
-            />
-            <input
-              placeholder="Código"
-              value={customLabor.code}
-              onChange={(event) =>
-                setCustomLabor({ ...customLabor, code: event.target.value })
-              }
-            />
-            <input
-              required
-              type="number"
-              min="0"
-              placeholder="Precio por hora"
-              value={customLabor.price}
-              onChange={(event) =>
-                setCustomLabor({ ...customLabor, price: event.target.value })
-              }
-            />
-            <input
-              required
-              type="number"
-              min="0.25"
-              step="0.25"
-              placeholder="Horas"
-              value={customLabor.quantity}
-              onChange={(event) =>
-                setCustomLabor({ ...customLabor, quantity: event.target.value })
-              }
-            />
-            <button className="primary-button">
-              <FiPlus /> Guardar y agregar
-            </button>
+            <input required placeholder="Nombre de la mano de obra" value={customLabor.name} onChange={(event) => setCustomLabor({ ...customLabor, name: event.target.value })} />
+            <input placeholder="Código" value={customLabor.code} onChange={(event) => setCustomLabor({ ...customLabor, code: event.target.value })} />
+            <input required type="number" min="0" placeholder="Precio por hora" value={customLabor.price} onChange={(event) => setCustomLabor({ ...customLabor, price: event.target.value })} />
+            <input required type="number" min="0.25" step="0.25" placeholder="Horas" value={customLabor.quantity} onChange={(event) => setCustomLabor({ ...customLabor, quantity: event.target.value })} />
+            <button className="primary-button"><FiPlus /> Guardar y agregar</button>
           </form>
         )}
       </div>
@@ -264,30 +174,25 @@ function CatalogAddPanel({
         <strong>Repuestos</strong>
         <div className="catalog-search">
           <FiSearch />
-          <input
-            value={partSearch}
-            onChange={(event) => setPartSearch(event.target.value)}
-            placeholder="Código o nombre del repuesto"
-          />
+          <input value={partSearch} onChange={(event) => setPartSearch(event.target.value)} placeholder="Código o nombre del repuesto" />
         </div>
-        {partSearch &&
-          matchingParts.map((item) => {
-            const draft = catalogDraft(item);
-            return (
-              <div className="catalog-add-row" key={`part-${item.id}`}>
-                <div>
-                  <b>{item.name}</b>
-                  <small>{item.code || "Sin código"} · Repuesto</small>
-                </div>
-                <label>
-                  Precio
-                  <input
-                    aria-label={`Precio de ${item.name}`}
-                    type="number"
-                    min="0"
-                    value={draft.price}
-                    onChange={(event) =>
-                      updateCatalogDraft(item, "price", event.target.value)
+        {partSearch && matchingParts.map((item) => {
+          const draft = catalogDraft(item);
+          return (
+            <div className="catalog-add-row" key={`part-${item.id}`}>
+              <div>
+                <b>{item.name}</b>
+                <small>{item.code || "Sin código"} · Repuesto</small>
+              </div>
+              <label>
+                Precio
+                <input
+                  aria-label={`Precio de ${item.name}`}
+                  type="number"
+                  min="0"
+                  value={draft.price}
+                  onChange={(event) =>
+                    updateCatalogDraft(item, "price", event.target.value)
                     }
                   />
                 </label>
@@ -373,61 +278,7 @@ function CatalogAddPanel({
   );
 }
 
-function InvoiceRow({ invoice, entry, onOpen, onUpdate, onRemove }) {
-  const locked = ["Pagada", "Anulada"].includes(invoice.status);
-  const [total, setTotal] = useState(String(invoice.total ?? 0));
-  const saveTotal = () => onUpdate(invoice, { total: Number(total) || 0 });
-  return (
-    <div className="quote-row invoice-row">
-      <div>
-        <b>{invoice.number}</b>
-        <span>
-          {entry?.number || "Ingreso eliminado"} ·{" "}
-          {entry?.plate || "Sin patente"}
-        </span>
-      </div>
-      <label className="invoice-field">
-        Estado
-        <select
-          value={invoice.status}
-          disabled={locked}
-          onChange={(event) =>
-            onUpdate(invoice, { status: event.target.value })
-          }
-        >
-          <option>Pendiente de pago</option>
-          <option>Pagada</option>
-          <option>Anulada</option>
-        </select>
-      </label>
-      <label className="invoice-field">
-        Total
-        <input
-          type="number"
-          min="0"
-          value={total}
-          disabled={locked}
-          onChange={(event) => setTotal(event.target.value)}
-          onBlur={saveTotal}
-        />
-      </label>
-      <button className="icon-button" title="Abrir orden" onClick={onOpen}>
-        <FiChevronRight />
-      </button>
-      {!locked && (
-        <button
-          className="icon-button danger"
-          title="Eliminar factura"
-          onClick={() => onRemove(invoice, "facturas")}
-        >
-          <FiX />
-        </button>
-      )}
-    </div>
-  );
-}
-
-function WorkOrderPrintDocument({ selectedEntry, selectedClient, selectedVehicleData, selectedTotal, selectedBalance, paymentForm }) {
+function WorkOrderPrintDocument({ selectedEntry, selectedClient, selectedVehicleData, selectedTotal, selectedBalance, paymentForm, descriptionTitle = "Descripción del servicio", itemsTitle = "Costos del servicio" }) {
   return (
     <section className="work-order-print" aria-label="Orden de trabajo imprimible">
       <div className="work-order-frame">
@@ -447,7 +298,7 @@ function WorkOrderPrintDocument({ selectedEntry, selectedClient, selectedVehicle
           <span>Recepción<strong>{selectedEntry.date}<br />{selectedEntry.time}</strong></span>
           <span>Entrega<strong>Por definir</strong></span>
         </div>
-        <div className="work-order-block"><h3>Descripción del servicio</h3><p>{selectedEntry.description || "Sin descripción"}</p></div>
+        <div className="work-order-block"><h3>{descriptionTitle}</h3><p>{selectedEntry.description || "Sin descripción"}</p></div>
         <div className="work-order-block observations"><h3>Observaciones</h3><p>{paymentForm.observations || " "}</p></div>
         <div className="work-order-grid three totals">
           <span>Total a pagar<strong>{money(selectedTotal)}</strong></span>
@@ -457,7 +308,7 @@ function WorkOrderPrintDocument({ selectedEntry, selectedClient, selectedVehicle
         <div className="payment-heading">Forma de pago: <strong>{paymentForm.method}</strong></div>
         <div className="work-order-grid four payment-options"><span>Cheque</span><span>Transferencia</span><span>Depósito</span><span>Efectivo</span></div>
         <div className="work-order-items">
-          <h3>Costos del servicio</h3>
+          <h3>{itemsTitle}</h3>
           {selectedEntry.items.map(item => (
             <div key={item.itemId}>
               <span>{item.type === "labor" ? "MO" : "REP"} · {item.name}</span>
@@ -1494,104 +1345,6 @@ function Taller() {
               <span className="eyebrow">PASO 02 · {selectedEntry.number}</span>
               <h2>Trabajos asociados</h2>
             </div>
-            <button className="secondary-button" onClick={createQuote}>
-              <FiEdit3 /> Crear presupuesto
-            </button>
-          </div>
-          <div className="item-columns">
-            <div>
-              <h3>Mano de obra</h3>
-              <div className="search-box">
-                <FiSearch />
-                <input
-                  value={laborSearch}
-                  onChange={(event) => setLaborSearch(event.target.value)}
-                  placeholder="Escribe para buscar mano de obra..."
-                />
-              </div>
-              {laborSearch &&
-                matchingLabor.map((item) => (
-                  <button
-                    className="result-row"
-                    key={item.id}
-                    onClick={() => addItem({ ...item, type: "labor" })}
-                  >
-                    <span>
-                      <b>{item.name}</b>
-                      <small>
-                        {item.code} · {item.duration}
-                      </small>
-                    </span>
-                    <strong>{money(item.price)}</strong>
-                    <FiPlus />
-                  </button>
-                ))}
-              <div className="custom-item">
-                <span>¿No está en el catálogo?</span>
-                <button onClick={() => setSection("labor")}>
-                  Agregar mano de obra <FiChevronRight />
-                </button>
-              </div>
-            </div>
-            <div>
-              <h3>Repuestos</h3>
-              <div className="search-box">
-                <FiSearch />
-                <input
-                  value={partSearch}
-                  onChange={(event) => setPartSearch(event.target.value)}
-                  placeholder="Buscar repuesto..."
-                />
-              </div>
-              {partSearch &&
-                matchingParts.map((item) => (
-                  <button
-                    className="result-row"
-                    key={item.id}
-                    onClick={() => addItem({ ...item, type: "part" })}
-                  >
-                    <span>
-                      <b>{item.name}</b>
-                      <small>{item.code}</small>
-                    </span>
-                    <strong>{money(item.price)}</strong>
-                    <FiPlus />
-                  </button>
-                ))}
-            </div>
-            <div className="attached-items">
-              <h3>Agregados a la orden</h3>
-              {selectedEntry.items.map((item) => (
-                <div className="attached-row" key={item.itemId}>
-                  <span>
-                    <i>{item.type === "part" ? "REP" : "MO"}</i>
-                    {item.name}
-                  </span>
-                  <strong>{money(item.price)}</strong>
-                </div>
-              ))}
-              <div className="total-row">
-                <span>Total estimado</span>
-                <strong>
-                  {money(
-                    selectedEntry.items.reduce(
-                      (sum, item) => sum + Number(item.price) * item.quantity,
-                      0,
-                    ),
-                  )}
-                </strong>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-      {section === "ingresos" && selectedEntry && (
-        <section className="panel items-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="eyebrow">PASO 02 · {selectedEntry.number}</span>
-              <h2>Trabajos asociados</h2>
-            </div>
             <div className="panel-actions">
               <button className="secondary-button" onClick={createQuote}>
                 <FiEdit3 /> Crear presupuesto
@@ -1726,676 +1479,79 @@ function Taller() {
       )}
 
       {section === "clientes" && (
-        <section className="taller-grid-two">
-          <div className="panel">
-            <div className="panel-heading">
-              <div>
-                <span className="eyebrow">CARTERA</span>
-                <h2>Nuevo cliente</h2>
-              </div>
-            </div>
-            <form className="taller-import-form" onSubmit={(event) => importarTallerArchivo(event, "clientes")}>
-              <div><strong>Importar clientes</strong><small>Columnas: nombre, rut, telefono y email.</small></div>
-              <input name="archivo" type="file" accept=".csv,.xlsx,.xls" required />
-              <button type="submit">Subir archivo</button>
-            </form>
-            {importResults.clientes && <div className="taller-import-result">{importResults.clientes.message ? <strong>{importResults.clientes.message}</strong> : <><strong>{importResults.clientes.imported} importado(s)</strong><span>{importResults.clientes.rejected} rechazado(s)</span>{importResults.clientes.errors?.length > 0 && <ul>{importResults.clientes.errors.map(error => <li key={error.fila}>Fila {error.fila}: {error.motivo}</li>)}</ul>}</>}</div>}
-            <form className="taller-form" onSubmit={createClient}>
-              <label>
-                Nombre o razón social
-                <input
-                  value={clientForm.name}
-                  onChange={(event) =>
-                    setClientForm({ ...clientForm, name: event.target.value })
-                  }
-                  required
-                />
-              </label>
-              <label>
-                RUT
-                <input
-                  value={clientForm.rut}
-                  onChange={(event) =>
-                    setClientForm({ ...clientForm, rut: event.target.value })
-                  }
-                  required
-                />
-              </label>
-              <label>
-                Teléfono
-                <input
-                  value={clientForm.phone}
-                  onChange={(event) =>
-                    setClientForm({ ...clientForm, phone: event.target.value })
-                  }
-                />
-              </label>
-              <label>
-                Email
-                <input
-                  type="email"
-                  value={clientForm.email}
-                  onChange={(event) =>
-                    setClientForm({ ...clientForm, email: event.target.value })
-                  }
-                />
-              </label>
-              <button className="primary-button wide">
-                <FiPlus /> Guardar cliente
-              </button>
-            </form>
-            <div className="records-list">
-              {clients.map((client) => (
-                <div className="record-row" key={client.id}>
-                  <span className="avatar">
-                    <FiUser />
-                  </span>
-                  <div>
-                    <b>{client.name}</b>
-                    <small>
-                      {client.rut} · {client.phone}
-                    </small>
-                  </div>
-                  <strong>
-                    {
-                      vehicles.filter(
-                        (vehicle) => vehicle.clientId === client.id,
-                      ).length
-                    }{" "}
-                    vehículo(s)
-                  </strong>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="panel">
-            <div className="panel-heading">
-              <div>
-                <span className="eyebrow">FLOTA</span>
-                <h2>Agregar vehículo</h2>
-              </div>
-            </div>
-            <form className="taller-import-form" onSubmit={(event) => importarTallerArchivo(event, "vehiculos")}>
-              <div><strong>Importar vehículos</strong><small>Columnas: patente, marca, modelo, anio, cliente_id o cliente_rut y kilometraje.</small></div>
-              <input name="archivo" type="file" accept=".csv,.xlsx,.xls" required />
-              <button type="submit">Subir archivo</button>
-            </form>
-            {importResults.vehiculos && <div className="taller-import-result">{importResults.vehiculos.message ? <strong>{importResults.vehiculos.message}</strong> : <><strong>{importResults.vehiculos.imported} importado(s)</strong><span>{importResults.vehiculos.rejected} rechazado(s)</span>{importResults.vehiculos.errors?.length > 0 && <ul>{importResults.vehiculos.errors.map(error => <li key={error.fila}>Fila {error.fila}: {error.motivo}</li>)}</ul>}</>}</div>}
-            <form className="taller-form" onSubmit={createVehicle}>
-              <label>
-                Patente
-                <input
-                  value={vehicleForm.plate}
-                  onChange={(event) =>
-                    setVehicleForm({
-                      ...vehicleForm,
-                      plate: event.target.value.toUpperCase(),
-                    })
-                  }
-                  required
-                />
-              </label>
-              <label>
-                Cliente
-                <select
-                  value={vehicleForm.clientId}
-                  onChange={(event) =>
-                    setVehicleForm({
-                      ...vehicleForm,
-                      clientId: Number(event.target.value),
-                    })
-                  }
-                  required
-                >
-                  <option value="">Selecciona cliente</option>
-                  {clients.map((client) => (
-                    <option value={client.id} key={client.id}>
-                      {client.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Marca
-                <input
-                  value={vehicleForm.brand}
-                  onChange={(event) =>
-                    setVehicleForm({
-                      ...vehicleForm,
-                      brand: event.target.value,
-                    })
-                  }
-                  required
-                />
-              </label>
-              <label>
-                Modelo
-                <input
-                  value={vehicleForm.model}
-                  onChange={(event) =>
-                    setVehicleForm({
-                      ...vehicleForm,
-                      model: event.target.value,
-                    })
-                  }
-                  required
-                />
-              </label>
-              <label>
-                Año
-                <input
-                  value={vehicleForm.year}
-                  onChange={(event) =>
-                    setVehicleForm({ ...vehicleForm, year: event.target.value })
-                  }
-                />
-              </label>
-              <button className="primary-button wide">
-                <FiPlus /> Guardar vehículo
-              </button>
-            </form>
-            <div className="records-list">
-              {vehicles.map((vehicle) => (
-                <div className="record-row" key={vehicle.id}>
-                  <span className="avatar truck">
-                    <FiTruck />
-                  </span>
-                  <div>
-                    <b>
-                      {vehicle.plate} · {vehicle.brand} {vehicle.model}
-                    </b>
-                    <small>
-                      {clients.find((client) => client.id === vehicle.clientId)
-                        ?.name || "Sin cliente"}{" "}
-                      · {vehicle.year}
-                    </small>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <ClientesVehiculosSection
+          clients={clients}
+          vehicles={vehicles}
+          clientForm={clientForm}
+          setClientForm={setClientForm}
+          vehicleForm={vehicleForm}
+          setVehicleForm={setVehicleForm}
+          importResults={importResults}
+          onImport={importarTallerArchivo}
+          onCreateClient={createClient}
+          onCreateVehicle={createVehicle}
+        />
       )}
-
       {section === "labor" && (
-        <section className="taller-grid-two">
-          <div className="panel">
-            <div className="panel-heading">
-              <div>
-                <span className="eyebrow">CATÁLOGO</span>
-                <h2>Agregar mano de obra</h2>
-              </div>
-            </div>
-            <form className="taller-form" onSubmit={createLabor}>
-              <label>
-                Descripción del trabajo
-                <input
-                  value={laborForm.name}
-                  onChange={(event) =>
-                    setLaborForm({ ...laborForm, name: event.target.value })
-                  }
-                  placeholder="Ej. Cambio de embrague"
-                  required
-                />
-              </label>
-              <label>
-                Código interno
-                <input
-                  value={laborForm.code}
-                  onChange={(event) =>
-                    setLaborForm({ ...laborForm, code: event.target.value })
-                  }
-                  placeholder="MO-005"
-                />
-              </label>
-              <label>
-                Unidad
-                <select value="Hora" disabled>
-                  <option>Hora</option>
-                </select>
-              </label>
-              <label>
-                Precio por hora
-                <input
-                  type="number"
-                  min="0"
-                  value={laborForm.price}
-                  onChange={(event) =>
-                    setLaborForm({ ...laborForm, price: event.target.value })
-                  }
-                  required
-                />
-              </label>
-              <label>
-                Referencia de horas
-                <input
-                  value={laborForm.duration}
-                  onChange={(event) =>
-                    setLaborForm({ ...laborForm, duration: event.target.value })
-                  }
-                  placeholder="Ej. 4 h"
-                />
-              </label>
-              <button className="primary-button wide">
-                <FiPlus /> Agregar al catálogo
-              </button>
-            </form>
-          </div>
-          <div className="panel">
-            <div className="panel-heading">
-              <div>
-                <span className="eyebrow">BÚSQUEDA RÁPIDA</span>
-                <h2>Mano de obra disponible</h2>
-              </div>
-            </div>
-            <div className="search-box">
-              <FiSearch />
-              <input
-                value={laborSearch}
-                onChange={(event) => setLaborSearch(event.target.value)}
-                placeholder="Busca por código, nombre u horas"
-              />
-            </div>
-            <div className="catalog-list">
-              {labor
-                .filter((item) =>
-                  `${item.name} ${item.code} ${item.unit} ${item.duration || ""} ${item.price}`
-                    .toLowerCase()
-                    .includes(laborSearch.toLowerCase()),
-                )
-                .map((item) => (
-                  <div className="catalog-row" key={item.id}>
-                    <div>
-                      <b>{item.name}</b>
-                      <small>
-                        {item.code || "Sin código"} · {item.unit} ·{" "}
-                        {item.duration || "Sin referencia de horas"}
-                      </small>
-                    </div>
-                    <strong>{money(item.price)} / h</strong>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </section>
+        <ManoObraSection
+          labor={labor}
+          laborForm={laborForm}
+          setLaborForm={setLaborForm}
+          laborSearch={laborSearch}
+          setLaborSearch={setLaborSearch}
+          onCreate={createLabor}
+          formatMoney={money}
+        />
       )}
-
       {section === "presupuestos" && (
-        <section className="panel">
-          <div className="panel-heading">
-            <div>
-              <span className="eyebrow">PROPUESTAS COMERCIALES</span>
-              <h2>Presupuestos</h2>
-            </div>
-            <span className="count-label">{quotes.length} creados</span>
-          </div>
-          <div className="quote-list">
-            {quotes.map((quote) => {
-              const entry = entries.find((item) => item.id === quote.entryId);
-              return (
-                <div className="quote-row" key={quote.id}>
-                  <div>
-                    <b>{quote.number}</b>
-                    <span>
-                      {entry?.number || "Ingreso eliminado"} ·{" "}
-                      {entry?.plate || "Sin patente"}
-                    </span>
-                  </div>
-                  <span className="status-chip">{quote.status}</span>
-                  <strong>{money(quote.total)}</strong>
-                  <button
-                    className="icon-button"
-                    title="Modificar presupuesto"
-                    onClick={() => {
-                      setSection("ingresos");
-                      setSelectedEntryId(quote.entryId);
-                      setShowServiceDetails(true);
-                    }}
-                  >
-                    <FiEdit3 />
-                  </button>
-                  <button
-                    className="icon-button danger"
-                    title="Eliminar presupuesto"
-                    onClick={() => removeDocument(quote, "presupuestos")}
-                  >
-                    <FiX />
-                  </button>
-                </div>
-              );
-            })}
-            {quotes.length === 0 && (
-              <div className="empty-state">
-                <FiEdit3 />
-                <strong>No hay presupuestos</strong>
-                <span>Selecciona un ingreso y crea su primer presupuesto.</span>
-              </div>
-            )}
-          </div>
-        </section>
+        <PresupuestosSection
+          quotes={quotes}
+          entries={entries}
+          formatMoney={money}
+          onEditEntry={(entryId) => {
+            setSection("ingresos");
+            setSelectedEntryId(entryId);
+            setShowServiceDetails(true);
+          }}
+          onRemove={removeDocument}
+        />
       )}
-
       {section === "facturas" && (
-        <section className="panel">
-          <div className="panel-heading">
-            <div>
-              <span className="eyebrow">COBRANZAS</span>
-              <h2>Facturas</h2>
-            </div>
-            <span className="count-label">{invoices.length} emitidas</span>
-          </div>
-          <div className="quote-list">
-            {invoices.map((invoice) => (
-              <InvoiceRow
-                key={invoice.id}
-                invoice={invoice}
-                entry={entries.find((item) => item.id === invoice.entryId)}
-                onUpdate={updateInvoice}
-                onOpen={() => navigate(`/taller/orden/${invoice.entryId}`)}
-                onRemove={removeDocument}
-              />
-            ))}
-            {invoices.length === 0 && (
-              <div className="empty-state">
-                <FiEdit3 />
-                <strong>No hay facturas</strong>
-                <span>Agrega trabajos a una orden y pulsa Facturar.</span>
-              </div>
-            )}
-          </div>
-        </section>
+        <FacturasSection
+          invoices={invoices}
+          entries={entries}
+          onUpdate={updateInvoice}
+          onOpen={(entryId) => navigate(`/taller/orden/${entryId}`)}
+          onRemove={removeDocument}
+        />
       )}
-
       {section === "ingresos" && selectedEntry && (
-        <section className="panel item-management-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="eyebrow">EDICIÓN DE ÍTEMS</span>
-              <h2>Modificar o eliminar trabajos</h2>
-              <p className="panel-description">
-                Puedes cambiar el precio, las horas o la cantidad de cada
-                elemento.
-              </p>
-            </div>
-            <button className="primary-button" onClick={printWorkOrder}>
-              <FiPrinter /> Imprimir orden
-            </button>
-          </div>
-          <div className="managed-items">
-            {selectedEntry.items.map((item) => (
-              <div className="managed-item" key={item.itemId}>
-                <div className="managed-item-name">
-                  <strong>{item.name}</strong>
-                  <small>
-                    {item.code || "Sin código"} ·{" "}
-                    {item.type === "labor" ? "Mano de obra" : "Repuesto"}
-                  </small>
-                </div>
-                <label>
-                  Precio
-                  <input
-                    type="number"
-                    min="0"
-                    value={item.price}
-                    onChange={(event) =>
-                      updateItem(item.itemId, { price: event.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  {item.type === "labor" ? "Horas" : "Cantidad"}
-                  <input
-                    type="number"
-                    min={item.type === "labor" ? "0.25" : "1"}
-                    step={item.type === "labor" ? "0.25" : "1"}
-                    value={item.quantity}
-                    onChange={(event) =>
-                      updateItem(item.itemId, { quantity: event.target.value })
-                    }
-                  />
-                </label>
-                <strong className="managed-total">
-                  {money(Number(item.price) * Number(item.quantity))}
-                </strong>
-                <button
-                  type="button"
-                  className="icon-button danger"
-                  title="Eliminar ítem"
-                  onClick={() => removeItem(item.itemId)}
-                >
-                  <FiX />
-                </button>
-              </div>
-            ))}
-            {selectedEntry.items.length === 0 && (
-              <div className="empty-inline">
-                No hay ítems agregados a esta orden.
-              </div>
-            )}
-          </div>
-          <div className="payment-editor">
-            <label>
-              Adelanto
-              <input
-                type="number"
-                min="0"
-                value={paymentForm.advance}
-                onChange={(event) =>
-                  setPaymentForm({
-                    ...paymentForm,
-                    advance: event.target.value,
-                  })
-                }
-              />
-            </label>
-            <label>
-              Forma de pago
-              <select
-                value={paymentForm.method}
-                onChange={(event) =>
-                  setPaymentForm({ ...paymentForm, method: event.target.value })
-                }
-              >
-                <option>Efectivo</option>
-                <option>Cheque</option>
-                <option>Transferencia</option>
-                <option>Depósito</option>
-              </select>
-            </label>
-            <label className="wide">
-              Observaciones
-              <textarea
-                value={paymentForm.observations}
-                onChange={(event) =>
-                  setPaymentForm({
-                    ...paymentForm,
-                    observations: event.target.value,
-                  })
-                }
-                placeholder="Notas para la orden impresa"
-              />
-            </label>
-          </div>
-        </section>
+        <OrdenItemsSection
+          selectedEntry={selectedEntry}
+          paymentForm={paymentForm}
+          setPaymentForm={setPaymentForm}
+          onUpdateItem={updateItem}
+          onRemoveItem={removeItem}
+          onPrint={printWorkOrder}
+          formatMoney={money}
+        />
       )}
 
       {selectedEntry && (
-        <section
-          className="work-order-print"
-          aria-label="Orden de trabajo imprimible"
-        >
-          <div className="work-order-frame">
-            <div className="work-order-title">ORDEN DE TRABAJO</div>
-            <div className="work-order-grid two">
-              <span>
-                Número de orden<strong>{selectedEntry.number}</strong>
-              </span>
-              <span>
-                Folio<strong>{selectedEntry.id}</strong>
-              </span>
-            </div>
-            <div className="work-order-line">
-              Lugar y fecha de expedición:{" "}
-              <strong>
-                {selectedEntry.date} · {selectedEntry.time}
-              </strong>
-            </div>
-            <div className="work-order-line">
-              Cliente:{" "}
-              <strong>
-                {selectedClient?.name || "Sin cliente"}
-                {selectedClient?.rut ? ` · ${selectedClient.rut}` : ""}
-              </strong>
-            </div>
-            <div className="work-order-grid three">
-              <span>
-                Servicio<strong>Reparación / mantenimiento</strong>
-              </span>
-              <span>
-                Vehículo
-                <strong>
-                  {selectedVehicleData
-                    ? `${selectedVehicleData.brand} ${selectedVehicleData.model}`
-                    : "Sin vehículo"}
-                </strong>
-              </span>
-              <span>
-                Patente
-                <strong>{selectedVehicleData?.plate || "Sin patente"}</strong>
-              </span>
-            </div>
-            <div className="work-order-grid two schedule">
-              <span>
-                Recepción
-                <strong>
-                  {selectedEntry.date}
-                  <br />
-                  {selectedEntry.time}
-                </strong>
-              </span>
-              <span>
-                Entrega<strong>Por definir</strong>
-              </span>
-            </div>
-            <div className="work-order-block">
-              <h3>Descripción</h3>
-              <p>{selectedEntry.description || "Sin descripción"}</p>
-            </div>
-            <div className="work-order-block observations">
-              <h3>Observaciones</h3>
-              <p>{paymentForm.observations || " "}</p>
-            </div>
-            <div className="work-order-grid three totals">
-              <span>
-                Total a pagar<strong>{money(selectedTotal)}</strong>
-              </span>
-              <span>
-                Adelanto<strong>{money(paymentForm.advance)}</strong>
-              </span>
-              <span>
-                Restante<strong>{money(selectedBalance)}</strong>
-              </span>
-            </div>
-            <div className="payment-heading">
-              Forma de pago: <strong>{paymentForm.method}</strong>
-            </div>
-            <div className="work-order-grid four payment-options">
-              <span>Cheque</span>
-              <span>Transferencia</span>
-              <span>Depósito</span>
-              <span>Efectivo</span>
-            </div>
-            <div className="work-order-items">
-              <h3>Detalle de trabajos</h3>
-              {selectedEntry.items.map((item) => (
-                <div key={item.itemId}>
-                  <span>
-                    {item.type === "labor" ? "MO" : "REP"} · {item.name}
-                  </span>
-                  <span>
-                    {item.quantity}{" "}
-                    {item.type === "labor" ? "hora(s)" : "unidad(es)"} ×{" "}
-                    {money(item.price)} ={" "}
-                    <strong>
-                      {money(Number(item.quantity) * Number(item.price))}
-                    </strong>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <WorkOrderPrintDocument
+          selectedEntry={selectedEntry}
+          selectedClient={selectedClient}
+          selectedVehicleData={selectedVehicleData}
+          selectedTotal={selectedTotal}
+          selectedBalance={selectedBalance}
+          paymentForm={paymentForm}
+          descriptionTitle="Descripción"
+          itemsTitle="Detalle de trabajos"
+        />
       )}
 
       {section === "repuestos" && (
-        <section className="panel parts-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="eyebrow">INVENTARIO DEL TALLER</span>
-              <h2>Registro de repuestos</h2>
-              <p className="panel-description">
-                Consulta todos los repuestos registrados, tanto los nuevos como
-                los que ya no tienen stock.
-              </p>
-            </div>
-            <span className="count-label">{parts.length} registrados</span>
-          </div>
-          <div className="parts-summary">
-            <div>
-              <strong>
-                {parts.filter((part) => Number(part.stock) > 0).length}
-              </strong>
-              <span>Con stock</span>
-            </div>
-            <div>
-              <strong>
-                {parts.filter((part) => Number(part.stock) <= 0).length}
-              </strong>
-              <span>Sin stock / cerrados</span>
-            </div>
-          </div>
-          <div className="parts-table-wrap">
-            <table className="parts-table">
-              <thead>
-                <tr>
-                  <th>Código</th>
-                  <th>Repuesto</th>
-                  <th>Tipo</th>
-                  <th>Precio</th>
-                  <th>Stock</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {parts.map((part) => (
-                  <tr key={part.id}>
-                    <td>{part.code}</td>
-                    <td>
-                      <strong>{part.name}</strong>
-                    </td>
-                    <td>{part.type || "Sin tipo"}</td>
-                    <td>{money(part.price)}</td>
-                    <td>{part.stock}</td>
-                    <td>
-                      <span
-                        className={`inventory-status ${Number(part.stock) > 0 ? "available" : "closed"}`}
-                      >
-                        {Number(part.stock) > 0 ? "Disponible" : "Sin stock"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {parts.length === 0 && (
-              <div className="empty-state">
-                <FiTool />
-                <strong>No hay repuestos registrados</strong>
-                <span>Agrega repuestos desde el módulo Inventario.</span>
-              </div>
-            )}
-          </div>
-        </section>
+        <RepuestosSection parts={parts} formatMoney={money} />
       )}
 
       {selectedEntry &&

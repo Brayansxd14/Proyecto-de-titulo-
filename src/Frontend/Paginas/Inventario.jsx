@@ -2,6 +2,11 @@
 import React, { useEffect, useState } from 'react'
 import api from '../services/api'
 import '../styles/Inventario.css'
+import AccionesSection from './Inventario/sections/AccionesSection.jsx'
+import RepuestoFormSection from './Inventario/sections/RepuestoFormSection.jsx'
+import BuscarRepuestoSection from './Inventario/sections/BuscarRepuestoSection.jsx'
+import ReporteSection from './Inventario/sections/ReporteSection.jsx'
+import ProductosTableSection from './Inventario/sections/ProductosTableSection.jsx'
 
 const Inventario = () => {
   const [productos, setProductos] = useState([])
@@ -141,6 +146,21 @@ const Inventario = () => {
     }
   }
 
+  const mostrarTodo = async () => {
+    setFiltros({
+      ...filtros,
+      numero_serie: '',
+      nombre: '',
+      proveedor: '',
+      tipo: '',
+      estado: '',
+      cantidadMin: '',
+      cantidadMax: ''
+    })
+    const res = await api.get('/inventario')
+    setProductos(res.data)
+  }
+
   // 🔹 Generar reporte de salidas
   const generarReporte = async (e) => {
     e.preventDefault()
@@ -179,163 +199,57 @@ const Inventario = () => {
     <div>
       <h2>Inventario de Repuestos</h2>
 
-      {/* Botones para alternar formularios */}
-      <div className="inventario-botones">
-        <button onClick={() => setFormularioActivo(formularioActivo === 'agregar' ? null : 'agregar')}>
-          {formularioActivo === 'agregar' ? 'Ocultar formulario de agregar' : 'Agregar repuesto'}
-        </button>
-        <button onClick={() => setFormularioActivo(formularioActivo === 'buscar' ? null : 'buscar')}>
-          {formularioActivo === 'buscar' ? 'Ocultar formulario de búsqueda' : 'Buscar repuesto'}
-        </button>
-        <button onClick={() => setFormularioActivo(formularioActivo === 'reporte' ? null : 'reporte')}>
-          {formularioActivo === 'reporte' ? 'Ocultar reporte' : 'Generar reporte'}
-        </button>
-        <button onClick={() => setFormularioActivo(formularioActivo === 'importar' ? null : 'importar')}>
-          {formularioActivo === 'importar' ? 'Ocultar importación' : 'Importar Excel o CSV'}
-        </button>
-      </div>
-
-      {formularioActivo === 'importar' && (
-        <form onSubmit={importarArchivo} className="inventario-import-form">
-          <div>
-            <strong>Carga masiva de inventario</strong>
-            <small>Columnas: numero_serie o codigo, nombre, cantidad, precio, tipo y proveedor.</small>
-          </div>
-          <input name="archivo" type="file" accept=".csv,.xlsx,.xls" required />
-          <button type="submit">Subir datos</button>
-        </form>
-      )}
-
-      {importResult && (
-        <div className="inventario-import-result">
-          {importResult.message ? <strong>{importResult.message}</strong> : <><strong>{importResult.imported} fila(s) importada(s)</strong><span>{importResult.rejected} fila(s) rechazada(s)</span>{importResult.errors?.length > 0 && <ul>{importResult.errors.map(error => <li key={error.fila}>Fila {error.fila}: {error.motivo}</li>)}</ul>}</>}
-        </div>
-      )}
+      <AccionesSection
+        activeForm={formularioActivo}
+        onToggleForm={(name) =>
+          setFormularioActivo(formularioActivo === name ? null : name)
+        }
+        importResult={importResult}
+        onImport={importarArchivo}
+      />
 
       {formularioActivo === 'agregar' && (
-        <form onSubmit={handleSubmit} className="inventario-form">
-          <input name="numero_serie" placeholder="Número de serie" value={form.numero_serie} onChange={handleChange} disabled={Boolean(editando)} required />
-          <input name="nombre" placeholder="Nombre del repuesto" value={form.nombre} onChange={handleChange} required />
-          <input name="cantidad" type="number" min="0" placeholder="Cantidad" value={form.cantidad} onChange={handleChange} required />
-          <input name="precio" type="number" min="0" step="0.01" placeholder="Precio" value={form.precio} onChange={handleChange} required />
-          <select name="tipo" value={form.tipo} onChange={handleChange} required>
-            <option value="">Selecciona tipo</option>
-            <option value="Motor">Motor</option>
-            <option value="Frenos">Frenos</option>
-            <option value="Suspensión">Suspensión</option>
-            <option value="Eléctrico">Eléctrico</option>
-            <option value="otro">Otro</option>
-          </select>
-          {form.tipo === 'otro' && <input name="tipoOtro" placeholder="Especifica el tipo" value={form.tipoOtro} onChange={handleChange} required />}
-          <select name="proveedor" value={form.proveedor} onChange={handleChange}>
-            <option value="">Selecciona proveedor</option>
-            {proveedores.map(proveedor => <option key={proveedor.id} value={proveedor.nombre}>{proveedor.nombre}</option>)}
-            <option value="otro">Otro proveedor</option>
-          </select>
-          {form.proveedor === 'otro' && <input name="proveedorOtro" placeholder="Nombre del nuevo proveedor" value={form.proveedorOtro} onChange={handleChange} required />}
-          <button type="submit">{editando ? 'Guardar cambios' : 'Agregar repuesto'}</button>
-          {editando && <button type="button" onClick={handleClear}>Cancelar</button>}
-        </form>
+        <RepuestoFormSection
+          form={form}
+          proveedores={proveedores}
+          editando={editando}
+          onChange={handleChange}
+          onSubmit={handleSubmit}
+          onClear={handleClear}
+        />
       )}
 
       {formularioActivo === 'buscar' && (
-        <form onSubmit={buscarRepuesto} className="inventario-form">
-          <input placeholder="Número de serie" value={filtros.numero_serie} onChange={e => setFiltros({ ...filtros, numero_serie: e.target.value })} />
-          <input placeholder="Nombre" value={filtros.nombre} onChange={e => setFiltros({ ...filtros, nombre: e.target.value })} />
-          <select value={filtros.proveedor} onChange={e => setFiltros({ ...filtros, proveedor: e.target.value })}>
-            <option value="">Cualquier proveedor</option>
-            {proveedores.map(proveedor => <option key={proveedor.id} value={proveedor.nombre}>{proveedor.nombre}</option>)}
-          </select>
-          <select value={filtros.tipo} onChange={e => setFiltros({ ...filtros, tipo: e.target.value })}>
-            <option value="">Cualquier tipo</option>
-            <option value="Motor">Motor</option>
-            <option value="Frenos">Frenos</option>
-            <option value="Suspensión">Suspensión</option>
-            <option value="Eléctrico">Eléctrico</option>
-          </select>
-          <select value={filtros.estado} onChange={e => setFiltros({ ...filtros, estado: e.target.value })}>
-            <option value="">Cualquier estado</option>
-            <option value="con stock">Con stock</option>
-            <option value="sin stock">Sin stock</option>
-          </select>
-          <input type="number" min="0" placeholder="Cantidad mínima" value={filtros.cantidadMin} onChange={e => setFiltros({ ...filtros, cantidadMin: e.target.value })} />
-          <input type="number" min="0" placeholder="Cantidad máxima" value={filtros.cantidadMax} onChange={e => setFiltros({ ...filtros, cantidadMax: e.target.value })} />
-          <button type="submit">Buscar repuestos</button>
-          <button type="button" onClick={async () => { setFiltros({ ...filtros, numero_serie: '', nombre: '', proveedor: '', tipo: '', estado: '', cantidadMin: '', cantidadMax: '' }); const res = await api.get('/inventario'); setProductos(res.data) }}>Mostrar todo</button>
-        </form>
+        <BuscarRepuestoSection
+          filtros={filtros}
+          proveedores={proveedores}
+          onFilterChange={(name, value) =>
+            setFiltros((current) => ({ ...current, [name]: value }))
+          }
+          onSearch={buscarRepuesto}
+          onShowAll={mostrarTodo}
+        />
       )}
 
       {/* Formulario de reporte */}
       {formularioActivo === 'reporte' && (
-        <form onSubmit={generarReporte} className="inventario-reporte">
-          <input type="date" name="fechaInicio" value={filtros.fechaInicio} onChange={(e) => setFiltros({ ...filtros, fechaInicio: e.target.value })} />
-          <input type="date" name="fechaFin" value={filtros.fechaFin} onChange={(e) => setFiltros({ ...filtros, fechaFin: e.target.value })} />
-          <select name="proveedor" value={filtros.proveedor} onChange={(e) => setFiltros({ ...filtros, proveedor: e.target.value })}>
-            <option value="">Cualquier proveedor</option>
-            {proveedores.map(proveedor => <option key={proveedor.id} value={proveedor.nombre}>{proveedor.nombre}</option>)}
-          </select>
-          <button type="submit">Generar Reporte</button>
-        </form>
-      )}
-
-      {/* Tabla de reporte */}
-      {reporte.length > 0 && (
-        <div>
-          <h3>Reporte de salidas</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Repuesto</th>
-                <th>Proveedor</th>
-                <th>Total Salidas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reporte.map((item, index) => (
-                <tr key={index}>
-                  <td>{item.repuesto}</td>
-                  <td>{item.proveedor}</td>
-                  <td>{item.total_salidas}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ReporteSection
+          filtros={filtros}
+          proveedores={proveedores}
+          reporte={reporte}
+          onFilterChange={(name, value) =>
+            setFiltros((current) => ({ ...current, [name]: value }))
+          }
+          onGenerate={generarReporte}
+        />
       )}
 
       {/* Lista de repuestos */}
-      <h3>Lista de repuestos</h3>
-      <div className="inventario-table-wrapper">
-        <table className="inventario-table">
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Repuesto</th>
-              <th>Tipo</th>
-              <th>Cantidad</th>
-              <th>Precio</th>
-              <th>Proveedor</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {productos.map((p) => (
-              <tr key={p.numero_serie}>
-                <td><strong>{p.numero_serie}</strong></td>
-                <td>{p.nombre}</td>
-                <td>{p.tipo || '-'}</td>
-                <td>{p.cantidad}</td>
-                <td>${Number(p.precio || 0).toLocaleString('es-CL')}</td>
-                <td>{p.proveedor || '-'}</td>
-                <td><span className={`inventario-status ${p.estado === 'con stock' ? 'available' : 'empty'}`}>{p.estado}</span></td>
-                <td><div className="inventario-item-actions"><button className="inventario-edit-button" onClick={() => handleEdit(p)}>Editar</button><button className="inventario-delete-button" onClick={() => handleDelete(p.numero_serie)}>Eliminar</button></div></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {productos.length === 0 && <p className="inventario-empty">No hay repuestos registrados.</p>}
-      </div>
+      <ProductosTableSection
+        productos={productos}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
     </div>
   )
 }

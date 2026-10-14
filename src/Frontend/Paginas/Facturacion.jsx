@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
-import { FiAlertCircle, FiCheck, FiFileText, FiPlus, FiRefreshCw, FiSearch, FiTrash2 } from 'react-icons/fi'
+import { FiAlertCircle, FiCheck, FiRefreshCw } from 'react-icons/fi'
 import api from '../services/api'
 import '../styles/Facturacion.css'
+import MetricasSection from './Facturacion/sections/MetricasSection.jsx'
+import NuevaFacturaSection from './Facturacion/sections/NuevaFacturaSection.jsx'
+import ListaFacturasSection from './Facturacion/sections/ListaFacturasSection.jsx'
 
 const money = value => `$${Number(value || 0).toLocaleString('es-CL')}`
 const dateLabel = value => value ? String(value).slice(0, 10).split('-').reverse().join('/') : 'Sin fecha'
@@ -129,86 +132,42 @@ function Facturacion() {
       {error && <div className="billing-message error" role="alert"><FiAlertCircle />{error}</div>}
       {notice && <div className="billing-message success" role="status"><FiCheck />{notice}</div>}
 
-      <section className="billing-metrics" aria-label="Resumen de facturación">
-        <div><span>Facturas emitidas</span><strong>{error ? '—' : invoices.length}</strong><small>{error ? 'Datos no disponibles' : 'Histórico registrado'}</small></div>
-        <div><span>Por cobrar</span><strong>{error ? '—' : money(pendingTotal)}</strong><small>{error ? 'Datos no disponibles' : `${pendingInvoices.length} factura(s) pendiente(s)`}</small></div>
-        <div><span>Cobrado</span><strong>{error ? '—' : money(paidTotal)}</strong><small>{error ? 'Datos no disponibles' : `${paidInvoices.length} factura(s) pagada(s)`}</small></div>
-      </section>
+      <MetricasSection
+        hasError={Boolean(error)}
+        invoiceCount={invoices.length}
+        pendingTotal={pendingTotal}
+        pendingCount={pendingInvoices.length}
+        paidTotal={paidTotal}
+        paidCount={paidInvoices.length}
+        formatMoney={money}
+      />
 
       <section className="billing-content">
-        <form className="billing-create" onSubmit={crearFactura}>
-          <div className="billing-section-heading">
-            <span className="billing-icon"><FiPlus /></span>
-            <div><h2>Nueva factura</h2><p>Selecciona una orden que aún no tenga factura.</p></div>
-          </div>
-          {orders.length ? (
-            <>
-              <label htmlFor="billing-order">Orden de trabajo</label>
-              <select id="billing-order" value={selectedOrderId} onChange={event => setSelectedOrderId(event.target.value)}>
-                {orders.map(order => (
-                  <option key={order.entryId} value={order.entryId}>
-                    {order.entryNumber} · {order.plate} · {order.clientName}
-                  </option>
-                ))}
-              </select>
-              {selectedOrder && (
-                <div className="billing-order-preview">
-                  <div><small>CLIENTE</small><strong>{selectedOrder.clientName}</strong><span>RUT {selectedOrder.clientRut}</span></div>
-                  <div><small>VEHÍCULO</small><strong>{selectedOrder.plate}</strong><span>{selectedOrder.brand} {selectedOrder.model}</span></div>
-                  <div><small>ORDEN</small><strong>{selectedOrder.entryNumber}</strong><span>{selectedOrder.itemCount} conceptos · {dateLabel(selectedOrder.entryDate)}</span></div>
-                  <div className="billing-order-total"><small>TOTAL</small><strong>{money(selectedOrder.total)}</strong></div>
-                </div>
-              )}
-              <button className="billing-primary" type="submit" disabled={!selectedOrder || saving}>
-                <FiFileText /> {saving ? 'Creando factura...' : 'Emitir factura'}
-              </button>
-            </>
-          ) : (
-            <div className="billing-empty-order">{error ? 'Órdenes no disponibles mientras falla la conexión con la base de datos.' : 'No hay órdenes con trabajos pendientes de facturar.'}</div>
-          )}
-        </form>
-
-        <section className="billing-register" aria-labelledby="billing-register-title">
-          <div className="billing-register-heading">
-            <div><span className="billing-eyebrow">REGISTRO</span><h2 id="billing-register-title">Facturas</h2></div>
-            <span className="billing-count">{visibleInvoices.length} resultados</span>
-          </div>
-          <div className="billing-filters">
-            <label className="billing-search"><FiSearch /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar número, cliente u orden" /></label>
-            <select aria-label="Filtrar por estado" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
-              <option>Todas</option><option>Pendiente de pago</option><option>Pagada</option><option>Anulada</option>
-            </select>
-          </div>
-
-          {loading ? <div className="billing-empty">Cargando facturas desde la base de datos...</div> : (
-            <div className="billing-table-wrap">
-              <table className="billing-table">
-                <thead><tr><th>Factura</th><th>Cliente / orden</th><th>Vehículo</th><th>Emisión</th><th>Estado</th><th>Total</th><th aria-label="Acciones" /></tr></thead>
-                <tbody>
-                  {visibleInvoices.map(invoice => {
-                    const locked = ['Pagada', 'Anulada'].includes(invoice.status)
-                    return (
-                      <tr key={invoice.id}>
-                        <td><strong>{invoice.number}</strong><small>{invoice.entryNumber}</small></td>
-                        <td><strong>{invoice.clientName}</strong><small>{invoice.clientRut}</small></td>
-                        <td><strong>{invoice.plate}</strong><small>{invoice.brand} {invoice.model}</small></td>
-                        <td>{dateLabel(invoice.created)}</td>
-                        <td>
-                          <select className={`billing-status ${invoice.status === 'Pagada' ? 'paid' : invoice.status === 'Anulada' ? 'void' : 'pending'}`} aria-label={`Estado de ${invoice.number}`} value={invoice.status} disabled={locked} onChange={event => actualizarEstado(invoice, event.target.value)}>
-                            <option>Pendiente de pago</option><option>Pagada</option><option>Anulada</option>
-                          </select>
-                        </td>
-                        <td className="billing-amount">{money(invoice.total)}</td>
-                        <td>{!locked && <button className="billing-delete" type="button" title={`Eliminar ${invoice.number}`} onClick={() => eliminarFactura(invoice)}><FiTrash2 /></button>}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-              {!error && !visibleInvoices.length && <div className="billing-empty">{invoices.length ? 'No hay facturas que coincidan con esos filtros.' : 'Todavía no hay facturas emitidas.'}</div>}
-            </div>
-          )}
-        </section>
+        <NuevaFacturaSection
+          orders={orders}
+          selectedOrderId={selectedOrderId}
+          selectedOrder={selectedOrder}
+          saving={saving}
+          hasError={Boolean(error)}
+          onSelectOrder={setSelectedOrderId}
+          onCreate={crearFactura}
+          formatMoney={money}
+          formatDate={dateLabel}
+        />
+        <ListaFacturasSection
+          visibleInvoices={visibleInvoices}
+          invoiceCount={invoices.length}
+          loading={loading}
+          hasError={Boolean(error)}
+          search={search}
+          statusFilter={statusFilter}
+          onSearchChange={setSearch}
+          onStatusFilterChange={setStatusFilter}
+          onUpdateStatus={actualizarEstado}
+          onDelete={eliminarFactura}
+          formatMoney={money}
+          formatDate={dateLabel}
+        />
       </section>
     </main>
   )

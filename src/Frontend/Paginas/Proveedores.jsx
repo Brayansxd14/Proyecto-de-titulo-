@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import api from '../services/api'
 import '../styles/Proveedores.css'
+import ImportarSection from './Proveedores/sections/ImportarSection.jsx'
+import ProveedorFormSection from './Proveedores/sections/ProveedorFormSection.jsx'
+import ProveedoresTableSection from './Proveedores/sections/ProveedoresTableSection.jsx'
 
 const formularioInicial = {
   nombre: '',
@@ -121,61 +124,21 @@ const Proveedores = () => {
       <p>Administra los proveedores disponibles para el inventario.</p>
       {errorCarga && <div className="proveedores-load-error" role="alert"><span>{errorCarga}</span><button type="button" onClick={cargarProveedores} disabled={cargando}>{cargando ? 'Conectando...' : 'Reintentar'}</button></div>}
 
-      <form className="proveedores-import-form" onSubmit={importarArchivo}>
-        <div><strong>Importar proveedores</strong><small>Columnas: nombre, rut, contacto, telefono, email, direccion y estado.</small></div>
-        <input name="archivo" type="file" accept=".csv,.xlsx,.xls" required />
-        <button type="submit">Subir Excel o CSV</button>
-      </form>
-      {importResult && <div className="proveedores-import-result">{importResult.message ? <strong>{importResult.message}</strong> : <><strong>{importResult.imported} importado(s)</strong><span>{importResult.rejected} rechazado(s)</span>{importResult.errors?.length > 0 && <ul>{importResult.errors.map(error => <li key={error.fila}>Fila {error.fila}: {error.motivo}</li>)}</ul>}</>}</div>}
-
-      <form className="proveedores-form" onSubmit={guardar}>
-        <input name="nombre" placeholder="Nombre del proveedor" value={form.nombre} onChange={actualizarCampo} required />
-        <input name="rut" placeholder="RUT" value={form.rut} onChange={actualizarCampo} />
-        <input name="contacto" placeholder="Persona de contacto" value={form.contacto} onChange={actualizarCampo} />
-        <input name="telefono" placeholder="Teléfono" value={form.telefono} onChange={actualizarCampo} />
-        <input name="email" type="email" placeholder="Correo electrónico" value={form.email} onChange={actualizarCampo} />
-        <input name="direccion" placeholder="Dirección" value={form.direccion} onChange={actualizarCampo} />
-        <select name="estado" value={form.estado} onChange={actualizarCampo}>
-          <option value="Activo">Activo</option>
-          <option value="Inactivo">Inactivo</option>
-        </select>
-        <button type="submit">{editando ? 'Guardar cambios' : 'Agregar proveedor'}</button>
-        {editando && <button type="button" onClick={limpiar}>Cancelar</button>}
-      </form>
-
-      <div className="proveedores-table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>RUT</th>
-              <th>Contacto</th>
-              <th>Teléfono</th>
-              <th>Correo</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {proveedores.map(proveedor => (
-              <tr key={proveedor.id}>
-                <td>{proveedor.nombre}</td>
-                <td>{proveedor.rut || '-'}</td>
-                <td>{proveedor.contacto || '-'}</td>
-                <td>{proveedor.telefono || '-'}</td>
-                <td>{proveedor.email || '-'}</td>
-                <td>{proveedor.estado}</td>
-                <td className="proveedores-actions">
-                  <button type="button" onClick={() => editar(proveedor)}>Editar</button>
-                  <button type="button" onClick={() => eliminar(proveedor.id)}>Eliminar</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {cargando && <p>Cargando proveedores...</p>}
-        {!cargando && !errorCarga && proveedores.length === 0 && <p>No hay proveedores registrados.</p>}
-      </div>
+      <ImportarSection importResult={importResult} onImport={importarArchivo} />
+      <ProveedorFormSection
+        form={form}
+        editing={editando}
+        onChange={actualizarCampo}
+        onSubmit={guardar}
+        onCancel={limpiar}
+      />
+      <ProveedoresTableSection
+        proveedores={proveedores}
+        cargando={cargando}
+        errorCarga={errorCarga}
+        onEdit={editar}
+        onDelete={eliminar}
+      />
     </div>
   )
 }
