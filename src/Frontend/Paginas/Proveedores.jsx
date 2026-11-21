@@ -4,6 +4,7 @@ import '../styles/Proveedores.css'
 import ImportarSection from './Proveedores/sections/ImportarSection.jsx'
 import ProveedorFormSection from './Proveedores/sections/ProveedorFormSection.jsx'
 import ProveedoresTableSection from './Proveedores/sections/ProveedoresTableSection.jsx'
+import FacturasProveedoresSection from './Proveedores/sections/FacturasProveedoresSection.jsx'
 
 const formularioInicial = {
   nombre: '',
@@ -139,6 +140,7 @@ const Proveedores = () => {
         onEdit={editar}
         onDelete={eliminar}
       />
+      <FacturasProveedoresSection providers={proveedores} />
     </div>
   )
 }

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { FiFileText, FiPlus } from "react-icons/fi";
 
 export default function NuevaFacturaSection({
@@ -11,11 +12,21 @@ export default function NuevaFacturaSection({
   formatMoney,
   formatDate,
 }) {
+  const [discount, setDiscount] = useState("0");
+  const [taxRate, setTaxRate] = useState("0");
+  const estimatedBase = Math.max(0, Number(selectedOrder?.total || 0) - Number(discount || 0));
+  const estimatedTotal = estimatedBase * (1 + Number(taxRate || 0) / 100);
+
+  const submitInvoice = (event) => {
+    event.preventDefault();
+    onCreate({ discount: Number(discount), taxRate: Number(taxRate) });
+  };
+
   return (
-    <form className="billing-create" onSubmit={onCreate}>
+    <form className="billing-create" onSubmit={submitInvoice}>
       <div className="billing-section-heading">
         <span className="billing-icon"><FiPlus /></span>
-        <div><h2>Nueva factura</h2><p>Selecciona una orden que aún no tenga factura.</p></div>
+        <div><h2>Nueva factura interna</h2><p>Selecciona una orden que aún no tenga factura.</p></div>
       </div>
       {orders.length ? (
         <>
@@ -35,9 +46,19 @@ export default function NuevaFacturaSection({
               <div className="billing-order-total"><small>TOTAL</small><strong>{formatMoney(selectedOrder.total)}</strong></div>
             </div>
           )}
-          <button className="billing-primary" type="submit" disabled={!selectedOrder || saving}>
-            <FiFileText /> {saving ? "Creando factura..." : "Emitir factura"}
+          <div className="billing-invoice-options">
+            <label>Descuento ($)
+              <input type="number" min="0" max={selectedOrder?.total || 0} step="1" value={discount} onChange={(event) => setDiscount(event.target.value)} />
+            </label>
+            <label>IVA informativo (%)
+              <input type="number" min="0" max="100" step="0.01" value={taxRate} onChange={(event) => setTaxRate(event.target.value)} />
+            </label>
+          </div>
+          <div className="billing-estimate"><span>Total estimado</span><strong>{formatMoney(estimatedTotal)}</strong></div>
+          <button className="billing-primary" type="submit" disabled={!selectedOrder || saving || Number(discount) > Number(selectedOrder?.total || 0)}>
+            <FiFileText /> {saving ? "Creando..." : "Crear factura interna"}
           </button>
+          <p className="billing-internal-warning">Documento interno del sistema. No es una factura tributaria y no se envía al SII.</p>
         </>
       ) : (
         <div className="billing-empty-order">

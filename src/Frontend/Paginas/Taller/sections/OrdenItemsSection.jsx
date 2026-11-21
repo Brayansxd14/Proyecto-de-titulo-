@@ -2,9 +2,9 @@ import { FiPrinter, FiX } from "react-icons/fi";
 
 export default function OrdenItemsSection({
   selectedEntry,
-  paymentForm,
-  setPaymentForm,
-  onUpdateItem,
+  itemDraft,
+  onUpdateItemDraft,
+  onSaveItemDraft,
   onRemoveItem,
   onPrint,
   formatMoney,
@@ -34,11 +34,24 @@ export default function OrdenItemsSection({
             </div>
             <label>
               Precio
-              <input type="number" min="0" value={item.price} onChange={(event) => onUpdateItem(item.itemId, { price: event.target.value })} />
+              <input
+                type="number"
+                min="0"
+                value={itemDraft(item).price}
+                onChange={(event) => onUpdateItemDraft(item, "price", event.target.value)}
+                onBlur={() => onSaveItemDraft(item)}
+              />
             </label>
             <label>
               {item.type === "labor" ? "Horas" : "Cantidad"}
-              <input type="number" min={item.type === "labor" ? "0.25" : "1"} step={item.type === "labor" ? "0.25" : "1"} value={item.quantity} onChange={(event) => onUpdateItem(item.itemId, { quantity: event.target.value })} />
+              <input
+                type="number"
+                min={item.type === "labor" ? "0.25" : "1"}
+                step={item.type === "labor" ? "0.25" : "1"}
+                value={itemDraft(item).quantity}
+                onChange={(event) => onUpdateItemDraft(item, "quantity", event.target.value)}
+                onBlur={() => onSaveItemDraft(item)}
+              />
             </label>
             <strong className="managed-total">{formatMoney(Number(item.price) * Number(item.quantity))}</strong>
             <button type="button" className="icon-button danger" title="Eliminar ítem" onClick={() => onRemoveItem(item.itemId)}>
@@ -49,25 +62,6 @@ export default function OrdenItemsSection({
         {selectedEntry.items.length === 0 && (
           <div className="empty-inline">No hay ítems agregados a esta orden.</div>
         )}
-      </div>
-      <div className="payment-editor">
-        <label>
-          Adelanto
-          <input type="number" min="0" value={paymentForm.advance} onChange={(event) => setPaymentForm({ ...paymentForm, advance: event.target.value })} />
-        </label>
-        <label>
-          Forma de pago
-          <select value={paymentForm.method} onChange={(event) => setPaymentForm({ ...paymentForm, method: event.target.value })}>
-            <option>Efectivo</option>
-            <option>Cheque</option>
-            <option>Transferencia</option>
-            <option>Depósito</option>
-          </select>
-        </label>
-        <label className="wide">
-          Observaciones
-          <textarea value={paymentForm.observations} onChange={(event) => setPaymentForm({ ...paymentForm, observations: event.target.value })} placeholder="Notas para la orden impresa" />
-        </label>
       </div>
     </section>
   );

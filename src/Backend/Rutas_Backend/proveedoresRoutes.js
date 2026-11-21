@@ -5,7 +5,9 @@ import {
   crearProveedor,
   actualizarProveedor,
   eliminarProveedor,
-  importarProveedores
+  importarProveedores,
+  obtenerFacturasProveedor,
+  registrarFacturaProveedor
 } from '../Controladores/proveedoresController.js'
 
 const router = express.Router()
@@ -16,5 +18,7 @@ router.post('/proveedores', crearProveedor)
 router.put('/proveedores/:id', actualizarProveedor)
 router.delete('/proveedores/:id', eliminarProveedor)
 router.post('/proveedores/importar', upload.single('archivo'), importarProveedores)
+router.get('/proveedores/facturas', obtenerFacturasProveedor)
+router.post('/proveedores/facturas', registrarFacturaProveedor)
 
 export default router

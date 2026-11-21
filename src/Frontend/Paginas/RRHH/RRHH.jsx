@@ -12,7 +12,7 @@ const modulos = [
   { ruta: '/rrhh/liquidaciones', icono: '🧾', titulo: 'Liquidación de sueldo', descripcion: 'Prepara la información para liquidaciones.' }
 ]
 
-const RRHH = () => (
+const RRHH = ({ isAdmin }) => (
   <section className="rrhh-page">
     <header className="rrhh-header">
       <p className="rrhh-eyebrow">Área administrativa</p>
@@ -21,7 +21,7 @@ const RRHH = () => (
     </header>
 
     <div className="rrhh-grid">
-      {modulos.map(modulo => (
+      {modulos.filter(modulo => modulo.ruta !== '/usuarios' || isAdmin).map(modulo => (
         <Link className="rrhh-module" to={modulo.ruta} key={modulo.ruta}>
           <span className="rrhh-module-icon" aria-hidden="true">{modulo.icono}</span>
           <span>
@@ -35,7 +35,7 @@ const RRHH = () => (
 
     <div className="rrhh-note">
       <strong>Asistencia integrada</strong>
-      <span>El reloj con tarjeta sigue siendo la fuente oficial. Esta área está preparada para consultar o importar sus registros sin duplicar marcaciones.</span>
+      <span></span>
     </div>
   </section>
 )

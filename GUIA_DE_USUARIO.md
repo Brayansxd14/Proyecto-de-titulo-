@@ -19,7 +19,7 @@ La plataforma está pensada para que todo el flujo se soporte en una sola soluci
 2. Ingresa con tu usuario y contraseña.
 3. Si la sesión es válida, el sistema te llevará al dashboard principal.
 
-> La sesión se valida por token local, por lo que debes mantener la autenticación activa durante la sesión del navegador.
+> El sistema valida el token con el servidor antes de abrir los módulos. Si no has iniciado sesión o el token venció, volverás a esta pantalla.
 
 ## 3. Vista general del sistema
 
@@ -59,7 +59,7 @@ Es el módulo principal del sistema.
    - hora,
    - patente,
    - descripción del problema,
-   - fotos como evidencia.
+   - fotos como evidencia (se suben al guardar el ingreso).
 4. Guarda el ingreso.
 
 ### 5.2 Asociar vehículo y cliente
@@ -81,7 +81,8 @@ En la orden de trabajo puedes:
 1. Selecciona el ingreso.
 2. Agrega trabajos y repuestos.
 3. Haz clic en la opción de crear presupuesto.
-4. El sistema genera un documento con el total estimado.
+4. El sistema guarda una copia de los conceptos y el total.
+5. En la lista de presupuestos, abre el documento y pulsa **Imprimir presupuesto**. Los cambios posteriores en la orden no modifican el presupuesto guardado.
 
 ### 5.5 Facturar
 
@@ -89,8 +90,8 @@ Cuando el trabajo ya está definido:
 
 1. revisa todos los conceptos,
 2. confirma el total,
-3. genera la factura,
-4. deja registrado el estado de cobro.
+3. pulsa **Ir a facturación** para crear el comprobante interno,
+4. registra los pagos y abonos desde el módulo **Facturación**.
 
 ### 5.6 Orden de trabajo
 
@@ -99,7 +100,7 @@ Desde la orden puedes:
 - ver datos del vehículo y cliente,
 - revisar detalle del servicio,
 - agregar costos,
-- editar adelanto y forma de pago,
+- guardar observaciones de la orden,
 - imprimir la orden final.
 
 ## 6. Módulo Inventario
@@ -116,13 +117,17 @@ Aquí puedes gestionar el stock de repuestos y materiales.
 
 ## 7. Módulo Proveedores
 
-Permite registrar a los proveedores del taller.
+Permite registrar proveedores y sus facturas de compra.
 
 Se usa para:
 
 - almacenar información comercial,
 - mantener contacto con proveedores,
-- relacionar productos y compras.
+- registrar el número y fecha de la factura del proveedor,
+- detallar los repuestos recibidos con código, cantidad y costo,
+- ingresar automáticamente los repuestos al inventario en la misma operación.
+
+Si el código ya existe, se suma la cantidad recibida al stock y se actualiza el costo de compra sin cambiar el precio de venta. Los productos nuevos quedan con precio de venta cero; edítalos en Inventario antes de venderlos. La factura de compra y la recepción se guardan juntas: si falla una parte, no se aplica ninguna.
 
 ## 8. Módulo RR.HH.
 
@@ -140,14 +145,19 @@ Incluye:
 
 ## 9. Módulo Facturación
 
-Aquí se revisan y gestionan las facturas emitidas, su estado y el seguimiento de pagos.
+Aquí se crean y gestionan facturas internas asociadas a órdenes de trabajo. No son documentos tributarios y no se envían al SII.
 
 Se puede:
 
-- ver facturas emitidas,
-- abrir la orden asociada,
-- actualizar estado de pago,
-- revisar totales.
+- crear una factura desde una orden con sus trabajos y repuestos,
+- configurar un descuento y un porcentaje de IVA informativo,
+- abrir e imprimir el detalle de la factura,
+- registrar uno o más abonos y consultar el saldo,
+- anular una factura conservando la factura y los pagos en el historial.
+
+La impresión es un comprobante interno para control del sistema; no reemplaza una factura tributaria.
+
+Al final de esta sección aparece **Conexión con el SII**, una guía de preparación para el piloto. Indica si el backend tiene configuradas las variables del proveedor sin mostrar sus valores y enumera los pasos que faltan. La emisión está desactivada: no se generan boletas ni facturas tributarias reales desde este sistema.
 
 ## 10. Recomendaciones de uso
 

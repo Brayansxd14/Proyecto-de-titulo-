@@ -23,7 +23,7 @@ export const reporteAsistencia = async (req, res) => {
       `SELECT u.nombre, e.cargo, COUNT(a.id) AS dias_asistidos
        FROM asistencia a
        JOIN empleados e ON a.empleado_rut = e.rut
-       JOIN usuarios u ON e.rut = u.rut
+       JOIN usuarios u ON u.rut = e.rut
        WHERE a.fecha BETWEEN $1 AND $2 AND a.estado = 'Presente'
        GROUP BY u.nombre, e.cargo`,
       [fechaInicio, fechaFin]

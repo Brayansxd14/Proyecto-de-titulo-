@@ -1,10 +1,11 @@
-import { FiEdit3, FiX } from "react-icons/fi";
+import { FiPrinter, FiX } from "react-icons/fi";
 
 export default function PresupuestosSection({
   quotes,
   entries,
   formatMoney,
-  onEditEntry,
+  selectedQuoteId,
+  onViewQuote,
   onRemove,
 }) {
   return (
@@ -31,11 +32,12 @@ export default function PresupuestosSection({
               <span className="status-chip">{quote.status}</span>
               <strong>{formatMoney(quote.total)}</strong>
               <button
-                className="icon-button"
-                title="Modificar presupuesto"
-                onClick={() => onEditEntry(quote.entryId)}
+                className={`icon-button ${selectedQuoteId === quote.id ? "active" : ""}`}
+                title="Ver e imprimir presupuesto"
+                aria-label={`Ver presupuesto ${quote.number}`}
+                onClick={() => onViewQuote(quote.id)}
               >
-                <FiEdit3 />
+                <FiPrinter />
               </button>
               <button
                 className="icon-button danger"
@@ -49,7 +51,7 @@ export default function PresupuestosSection({
         })}
         {quotes.length === 0 && (
           <div className="empty-state">
-            <FiEdit3 />
+            <FiPrinter />
             <strong>No hay presupuestos</strong>
             <span>Selecciona un ingreso y crea su primer presupuesto.</span>
           </div>

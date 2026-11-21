@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   FiCamera,
@@ -16,102 +16,24 @@ import {
 } from "react-icons/fi";
 import api from "../services/api";
 import "../styles/Taller.css";
-import FacturasSection from "./Taller/sections/FacturasSection.jsx";
 import PresupuestosSection from "./Taller/sections/PresupuestosSection.jsx";
 import RepuestosSection from "./Taller/sections/RepuestosSection.jsx";
 import ManoObraSection from "./Taller/sections/ManoObraSection.jsx";
 import ClientesVehiculosSection from "./Taller/sections/ClientesVehiculosSection.jsx";
 import OrdenItemsSection from "./Taller/sections/OrdenItemsSection.jsx";
 
-const initialClients = [
-  {
-    id: 1,
-    name: "Transportes del Sur SpA",
-    rut: "76.345.890-1",
-    phone: "+56 9 8765 4321",
-    email: "contacto@transportessur.cl",
-  },
-  {
-    id: 2,
-    name: "Logistica Andina Ltda.",
-    rut: "77.120.443-8",
-    phone: "+56 9 6655 1188",
-    email: "flota@andina.cl",
-  },
-];
-
-const initialVehicles = [
-  {
-    id: 1,
-    plate: "ABCD12",
-    brand: "Volvo",
-    model: "FH 460",
-    year: "2022",
-    clientId: 1,
-    km: "184.200",
-  },
-  {
-    id: 2,
-    plate: "KJTR45",
-    brand: "Scania",
-    model: "R 450",
-    year: "2021",
-    clientId: 2,
-    km: "231.800",
-  },
-];
-
-const initialLabor = [
-  {
-    id: 1,
-    code: "MO-001",
-    name: "Diagnóstico general",
-    unit: "Hora",
-    price: 35000,
-    duration: "",
-  },
-  {
-    id: 2,
-    code: "MO-002",
-    name: "Cambio de aceite y filtros",
-    unit: "Hora",
-    price: 48000,
-    duration: "",
-  },
-  {
-    id: 3,
-    code: "MO-003",
-    name: "Revisión sistema de frenos",
-    unit: "Hora",
-    price: 65000,
-    duration: "",
-  },
-  {
-    id: 4,
-    code: "MO-004",
-    name: "Reparación sistema eléctrico",
-    unit: "Hora",
-    price: 42000,
-    duration: "1 h",
-  },
-];
-
-const initialParts = [
-  { id: 1, name: "Filtro de aceite Volvo", code: "FIL-V-001", price: 18900 },
-  { id: 2, name: "Kit de pastillas de freno", code: "FRE-K-002", price: 125000 },
-  { id: 3, name: "Aceite motor 15W40 (20L)", code: "ACE-15-003", price: 78000 },
-];
-
-const readStore = (key, fallback) => {
-  try {
-    return JSON.parse(localStorage.getItem(key)) || fallback;
-  } catch {
-    return fallback;
-  }
-};
-
 const money = (value) => `$${Number(value || 0).toLocaleString("es-CL")}`;
-const today = new Date().toISOString().slice(0, 10);
+const apiOrigin = new URL(api.defaults.baseURL).origin;
+const today = (() => {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+})();
+const errorMessage = (error) =>
+  error.response?.data?.error ||
+  error.response?.data?.message ||
+  (typeof error.response?.data === "string" ? error.response.data : null) ||
+  error.message ||
+  "No se pudo completar la operación";
 
 function CatalogAddPanel({
   laborSearch,
@@ -124,11 +46,9 @@ function CatalogAddPanel({
   updateCatalogDraft,
   addCatalogItem,
   createCustomLabor,
-  createCustomPart,
   className = "",
 }) {
   const [customLabor, setCustomLabor] = useState({ name: "", code: "", price: "", quantity: "1" });
-  const [customPart, setCustomPart] = useState({ name: "", code: "", price: "", quantity: "1" });
   const noLaborMatch = laborSearch && matchingLabor.length === 0;
   const noPartMatch = partSearch && matchingParts.length === 0;
 
@@ -139,7 +59,7 @@ function CatalogAddPanel({
           <span className="eyebrow">DETALLE DEL SERVICIO</span>
           <h3>Agregar repuestos y mano de obra</h3>
         </div>
-        <small>Busca primero; si no existe, créalo aquí</small>
+        <small>La mano de obra puede crearse aquí; los repuestos se administran en Inventario.</small>
       </div>
       <div className="catalog-add-section">
         <strong>Mano de obra</strong>
@@ -160,7 +80,12 @@ function CatalogAddPanel({
           );
         })}
         {noLaborMatch && (
-          <form className="custom-catalog-form" onSubmit={(event) => { event.preventDefault(); createCustomLabor(customLabor); setCustomLabor({ name: "", code: "", price: "", quantity: "1" }); }}>
+          <form className="custom-catalog-form" onSubmit={async (event) => {
+            event.preventDefault();
+            if (await createCustomLabor(customLabor)) {
+              setCustomLabor({ name: "", code: "", price: "", quantity: "1" });
+            }
+          }}>
             <b>No existe. Agregar mano de obra nueva</b>
             <input required placeholder="Nombre de la mano de obra" value={customLabor.name} onChange={(event) => setCustomLabor({ ...customLabor, name: event.target.value })} />
             <input placeholder="Código" value={customLabor.code} onChange={(event) => setCustomLabor({ ...customLabor, code: event.target.value })} />
@@ -223,69 +148,30 @@ function CatalogAddPanel({
             );
           })}
         {noPartMatch && (
-          <form
-            className="custom-catalog-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              createCustomPart(customPart);
-              setCustomPart({ name: "", code: "", price: "", quantity: "1" });
-            }}
-          >
-            <b>No existe. Agregar repuesto nuevo</b>
-            <input
-              required
-              placeholder="Nombre del repuesto"
-              value={customPart.name}
-              onChange={(event) =>
-                setCustomPart({ ...customPart, name: event.target.value })
-              }
-            />
-            <input
-              required
-              placeholder="Código / número de serie"
-              value={customPart.code}
-              onChange={(event) =>
-                setCustomPart({ ...customPart, code: event.target.value })
-              }
-            />
-            <input
-              required
-              type="number"
-              min="0"
-              placeholder="Precio unitario"
-              value={customPart.price}
-              onChange={(event) =>
-                setCustomPart({ ...customPart, price: event.target.value })
-              }
-            />
-            <input
-              required
-              type="number"
-              min="1"
-              placeholder="Cantidad"
-              value={customPart.quantity}
-              onChange={(event) =>
-                setCustomPart({ ...customPart, quantity: event.target.value })
-              }
-            />
-            <button className="primary-button">
-              <FiPlus /> Guardar y agregar
-            </button>
-          </form>
+          <p className="empty-inline">No se encontró el repuesto. Regístralo primero en Inventario para mantener el stock controlado.</p>
         )}
       </div>
     </div>
   );
 }
 
-function WorkOrderPrintDocument({ selectedEntry, selectedClient, selectedVehicleData, selectedTotal, selectedBalance, paymentForm, descriptionTitle = "Descripción del servicio", itemsTitle = "Costos del servicio" }) {
+function WorkOrderPrintDocument({
+  selectedEntry,
+  selectedClient,
+  selectedVehicleData,
+  selectedTotal,
+  documentType = "ORDEN DE TRABAJO",
+  documentNumber = selectedEntry.number,
+  descriptionTitle = "Descripción del servicio",
+  itemsTitle = "Costos del servicio",
+}) {
   return (
     <section className="work-order-print" aria-label="Orden de trabajo imprimible">
       <div className="work-order-frame">
-        <div className="work-order-title">ORDEN DE TRABAJO</div>
+        <div className="work-order-title">{documentType}</div>
         <div className="work-order-grid two">
-          <span>Número de orden<strong>{selectedEntry.number}</strong></span>
-          <span>Folio<strong>{selectedEntry.id}</strong></span>
+          <span>{documentType === "PRESUPUESTO" ? "Número de presupuesto" : "Número de orden"}<strong>{documentNumber}</strong></span>
+          <span>Ingreso asociado<strong>{selectedEntry.number}</strong></span>
         </div>
         <div className="work-order-line">Lugar y fecha de expedición: <strong>{selectedEntry.date} · {selectedEntry.time}</strong></div>
         <div className="work-order-line">Cliente: <strong>{selectedClient?.name || "Sin cliente"}{selectedClient?.rut ? ` · ${selectedClient.rut}` : ""}</strong></div>
@@ -299,14 +185,11 @@ function WorkOrderPrintDocument({ selectedEntry, selectedClient, selectedVehicle
           <span>Entrega<strong>Por definir</strong></span>
         </div>
         <div className="work-order-block"><h3>{descriptionTitle}</h3><p>{selectedEntry.description || "Sin descripción"}</p></div>
-        <div className="work-order-block observations"><h3>Observaciones</h3><p>{paymentForm.observations || " "}</p></div>
-        <div className="work-order-grid three totals">
+        <div className="work-order-block observations"><h3>Observaciones</h3><p>{selectedEntry.observations || "Sin observaciones"}</p></div>
+        <div className="work-order-grid two totals">
           <span>Total a pagar<strong>{money(selectedTotal)}</strong></span>
-          <span>Adelanto<strong>{money(paymentForm.advance)}</strong></span>
-          <span>Restante<strong>{money(selectedBalance)}</strong></span>
+          <span>Cobros<strong>Se registran en Facturación</strong></span>
         </div>
-        <div className="payment-heading">Forma de pago: <strong>{paymentForm.method}</strong></div>
-        <div className="work-order-grid four payment-options"><span>Cheque</span><span>Transferencia</span><span>Depósito</span><span>Efectivo</span></div>
         <div className="work-order-items">
           <h3>{itemsTitle}</h3>
           {selectedEntry.items.map(item => (
@@ -325,34 +208,28 @@ function Taller() {
   const navigate = useNavigate();
   const { ordenId } = useParams();
   const [section, setSection] = useState("ingresos");
-  const [clients, setClients] = useState(() =>
-    readStore("taller-clients", initialClients),
-  );
-  const [vehicles, setVehicles] = useState(() =>
-    readStore("taller-vehicles", initialVehicles),
-  );
-  const [labor, setLabor] = useState(() =>
-    readStore("taller-labor", initialLabor),
-  );
-  const [parts, setParts] = useState(() =>
-    readStore("taller-parts", initialParts),
-  );
-  const [entries, setEntries] = useState(() => readStore("taller-entries", []));
-  const [quotes, setQuotes] = useState(() => readStore("taller-quotes", []));
-  const [invoices, setInvoices] = useState(() =>
-    readStore("taller-invoices", []),
-  );
+  const [clients, setClients] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [labor, setLabor] = useState([]);
+  const [parts, setParts] = useState([]);
+  const [entries, setEntries] = useState([]);
+  const [quotes, setQuotes] = useState([]);
+  const [selectedQuoteId, setSelectedQuoteId] = useState(null);
   const [entrySearch, setEntrySearch] = useState("");
   const [plateSearch, setPlateSearch] = useState("");
   const [laborSearch, setLaborSearch] = useState("");
   const [partSearch, setPartSearch] = useState("");
   const [laborHours, setLaborHours] = useState("1");
   const [catalogDrafts, setCatalogDrafts] = useState({});
+  const [itemDrafts, setItemDrafts] = useState({});
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [selectedEntryId, setSelectedEntryId] = useState(null);
   const [tallerLoaded, setTallerLoaded] = useState(false);
+  const [tallerLoadError, setTallerLoadError] = useState("");
+  const [noticeError, setNoticeError] = useState(false);
   const [showServiceDetails, setShowServiceDetails] = useState(false);
   const [notice, setNotice] = useState("");
+  const noticeTimer = useRef(null);
   const [entryForm, setEntryForm] = useState({
     number: "",
     plate: "",
@@ -361,6 +238,10 @@ function Taller() {
     time: new Date().toTimeString().slice(0, 5),
     photos: [],
   });
+  const entryPhotoInput = useRef(null);
+  const entryDrafts = useRef(new Map());
+  const entrySaveTimers = useRef(new Map());
+  const entrySaveQueues = useRef(new Map());
   const [clientForm, setClientForm] = useState({
     name: "",
     rut: "",
@@ -381,34 +262,16 @@ function Taller() {
     price: "",
     duration: "",
   });
-  const [paymentForm, setPaymentForm] = useState({
-    advance: 0,
-    method: "Efectivo",
-    observations: "",
-  });
   const [importResults, setImportResults] = useState({});
 
   useEffect(() => {
-    localStorage.setItem("taller-clients", JSON.stringify(clients));
-  }, [clients]);
-  useEffect(() => {
-    localStorage.setItem("taller-vehicles", JSON.stringify(vehicles));
-  }, [vehicles]);
-  useEffect(() => {
-    localStorage.setItem("taller-labor", JSON.stringify(labor));
-  }, [labor]);
-  useEffect(() => {
-    localStorage.setItem("taller-entries", JSON.stringify(entries));
-  }, [entries]);
-  useEffect(() => {
-    localStorage.setItem("taller-quotes", JSON.stringify(quotes));
-  }, [quotes]);
-  useEffect(() => {
-    localStorage.setItem("taller-invoices", JSON.stringify(invoices));
-  }, [invoices]);
-  useEffect(() => {
-    localStorage.setItem("taller-parts", JSON.stringify(parts));
-  }, [parts]);
+    const pendingSaveTimers = entrySaveTimers.current;
+    return () => {
+      if (noticeTimer.current) window.clearTimeout(noticeTimer.current);
+      for (const timer of pendingSaveTimers.values()) window.clearTimeout(timer);
+    };
+  }, []);
+
   useEffect(() => {
     const loadTaller = async () => {
       try {
@@ -418,10 +281,15 @@ function Taller() {
         setLabor(data.labor);
         setEntries(data.entries);
         setQuotes(data.quotes);
-        setInvoices(data.invoices);
-        const inventory = await api.get("/inventario");
+      } catch (error) {
+        setTallerLoadError(`No se pudo cargar la información del taller: ${errorMessage(error)}`);
+      } finally {
+        setTallerLoaded(true);
+      }
+      try {
+        const { data } = await api.get("/inventario");
         setParts(
-          inventory.data.map((part) => ({
+          data.map((part) => ({
             id: part.numero_serie,
             code: part.numero_serie,
             name: part.nombre,
@@ -432,20 +300,23 @@ function Taller() {
           })),
         );
       } catch (error) {
-        console.warn(
-          "Backend de taller no disponible; se mantienen los datos locales.",
-          error.message,
+        setTallerLoadError((current) =>
+          [current, `No se pudo cargar el inventario: ${errorMessage(error)}`].filter(Boolean).join(" · "),
         );
-      } finally {
-        setTallerLoaded(true);
       }
     };
     loadTaller();
   }, []);
 
   const nextNumber = useMemo(
-    () => `ING-${String(entries.length + 1).padStart(5, "0")}`,
-    [entries.length],
+    () => {
+      const maxNumber = entries.reduce((max, entry) => {
+        const sequence = Number(String(entry.number).match(/(\d+)$/)?.[1] || 0);
+        return Math.max(max, sequence);
+      }, 0);
+      return `ING-${String(maxNumber + 1).padStart(5, "0")}`;
+    },
+    [entries],
   );
   const matchingVehicles = vehicles.filter((vehicle) =>
     vehicle.plate.toLowerCase().includes(plateSearch.toLowerCase()),
@@ -467,6 +338,16 @@ function Taller() {
   const selectedEntry = entries.find((entry) =>
     ordenId ? String(entry.id) === ordenId : entry.id === selectedEntryId,
   );
+  const selectedQuote = quotes.find((quote) => quote.id === selectedQuoteId);
+  const quoteEntry = selectedQuote
+    ? entries.find((entry) => String(entry.id) === String(selectedQuote.entryId))
+    : null;
+  const quoteVehicle = quoteEntry
+    ? vehicles.find((vehicle) => String(vehicle.id) === String(quoteEntry.vehicleId))
+    : null;
+  const quoteClient = quoteVehicle
+    ? clients.find((client) => String(client.id) === String(quoteVehicle.clientId))
+    : null;
   const selectedVehicleData = selectedEntry
     ? vehicles.find((vehicle) => vehicle.id === selectedEntry.vehicleId)
     : null;
@@ -478,17 +359,18 @@ function Taller() {
       (sum, item) => sum + Number(item.price) * Number(item.quantity),
       0,
     ) || 0;
-  const selectedBalance = Math.max(
-    0,
-    selectedTotal - Number(paymentForm.advance || 0),
-  );
   const openEntries = entries.filter(
     (entry) => entry.status !== "Cerrado",
   ).length;
 
-  const flash = (message) => {
+  const flash = (message, isError = false) => {
     setNotice(message);
-    window.setTimeout(() => setNotice(""), 2600);
+    setNoticeError(isError);
+    if (noticeTimer.current) window.clearTimeout(noticeTimer.current);
+    noticeTimer.current = window.setTimeout(() => {
+      setNotice("");
+      setNoticeError(false);
+    }, 4000);
   };
   const printWorkOrder = () => {
     if (!selectedEntry) {
@@ -526,30 +408,30 @@ function Taller() {
         description: entryForm.description,
       });
       entry = data;
-    } catch {
-      entry = {
-        ...entryForm,
-        id: Date.now(),
-        number: entryNumber,
-        vehicleId: vehicle.id,
-        clientId: vehicle.clientId,
-        status: "Pendiente",
-        items: [],
-        photos: [],
-      };
+    } catch (error) {
+      flash(errorMessage(error), true);
+      return;
     }
     setEntries((current) => [entry, ...current]);
     setSelectedEntryId(entry.id);
+    const selectedPhotos = entryForm.photos;
     setEntryForm({
-      number: nextNumber,
+      number: "",
       plate: "",
       description: "",
       date: today,
       time: new Date().toTimeString().slice(0, 5),
       photos: [],
     });
+    if (entryPhotoInput.current) entryPhotoInput.current.value = "";
     setSelectedVehicle(null);
-    flash("Ingreso creado. Ya puedes asociar mano de obra y repuestos.");
+    const { failures: uploadFailures, firstError } = await uploadPhotoFiles(entry.id, selectedPhotos);
+    flash(
+      uploadFailures
+        ? `Ingreso creado, pero ${uploadFailures} foto(s) no se pudieron subir${firstError ? `: ${firstError}` : ""}. Adjunta las pendientes desde la orden.`
+        : "Ingreso creado. Ya puedes asociar mano de obra y repuestos.",
+      uploadFailures > 0,
+    );
   };
 
   const addItem = async (item) => {
@@ -557,34 +439,30 @@ function Taller() {
       flash("Selecciona un ingreso antes de agregar ítems");
       return;
     }
-    const itemData = { ...item };
-    const newItem = {
-      ...itemData,
+    const itemData = {
+      ...item,
       type: item.type || "labor",
-      quantity:
-        item.type === "labor"
-          ? Number(item.quantity || laborHours) || 1
-          : Number(item.quantity) || 1,
+      quantity: item.type === "labor"
+        ? Number(item.quantity || laborHours)
+        : Number(item.quantity),
     };
     try {
       const { data } = await api.post(
         `/taller/ingresos/${selectedEntry.id}/items`,
-        newItem,
+        itemData,
       );
-      newItem.itemId = data.itemId;
-    } catch {
-      newItem.itemId = `${selectedEntry.id}-${selectedEntry.items.length + 1}`;
+      setEntries((current) =>
+        current.map((entry) =>
+          entry.id === selectedEntry.id
+            ? { ...entry, items: [...entry.items, data] }
+            : entry,
+        ),
+      );
+      return data;
+    } catch (error) {
+      flash(errorMessage(error), true);
+      return null;
     }
-    setEntries((current) =>
-      current.map((entry) =>
-        entry.id === selectedEntry.id
-          ? { ...entry, items: [...entry.items, newItem] }
-          : entry,
-      ),
-    );
-    flash(
-      `${item.type === "part" ? "Repuesto" : "Mano de obra"} agregado al ingreso`,
-    );
   };
 
   const catalogDraft = (item) =>
@@ -610,70 +488,30 @@ function Taller() {
   };
 
   const createCustomLabor = async (form) => {
-    let item = {
-      id: `local-labor-${labor.length + 1}`,
-      name: form.name,
-      code: form.code,
-      unit: "Hora",
-      price: Number(form.price) || 0,
-      duration: "",
-    };
+    let item;
     try {
-      const { data } = await api.post("/taller/mano-obra", item);
+      const { data } = await api.post("/taller/mano-obra", {
+        name: form.name,
+        code: form.code,
+        price: Number(form.price),
+        duration: "",
+      });
       item = data;
-    } catch {
-      /* respaldo local */
+    } catch (error) {
+      flash(errorMessage(error), true);
+      return;
     }
     setLabor((current) => [...current, item]);
-    await addItem({
+    const added = await addItem({
       ...item,
       type: "labor",
       price: item.price,
       quantity: Number(form.quantity) || 1,
     });
+    if (!added) return true;
     setLaborSearch("");
     flash("Mano de obra guardada y agregada a la ficha");
-  };
-
-  const createCustomPart = async (form) => {
-    let item = {
-      id: form.code || `local-part-${parts.length + 1}`,
-      code: form.code,
-      name: form.name,
-      price: Number(form.price) || 0,
-      stock: Number(form.quantity) || 1,
-      type: "Otro",
-    };
-    try {
-      const { data } = await api.post("/inventario", {
-        numero_serie: form.code,
-        nombre: form.name,
-        cantidad: Number(form.quantity) || 1,
-        precio: Number(form.price) || 0,
-        tipo: "Otro",
-        proveedor: "",
-      });
-      item = {
-        id: data.numero_serie,
-        code: data.numero_serie,
-        name: data.nombre,
-        price: Number(data.precio) || 0,
-        stock: Number(data.cantidad) || 0,
-        status: data.estado,
-        type: data.tipo,
-      };
-    } catch {
-      /* respaldo local */
-    }
-    setParts((current) => [...current, item]);
-    await addItem({
-      ...item,
-      type: "part",
-      price: item.price,
-      quantity: Number(form.quantity) || 1,
-    });
-    setPartSearch("");
-    flash("Repuesto guardado y agregado a la ficha");
+    return true;
   };
 
   const updateItem = async (itemId, changes) => {
@@ -688,83 +526,104 @@ function Taller() {
       quantity: Number(changes.quantity ?? item.quantity),
     };
     try {
-      await api.patch(
+      const { data } = await api.patch(
         `/taller/ingresos/${selectedEntry.id}/items/${itemId}`,
         updated,
       );
-    } catch {
-      /* respaldo local */
+      setEntries((current) =>
+        current.map((entry) =>
+          entry.id === selectedEntry.id
+            ? {
+                ...entry,
+                items: entry.items.map((entryItem) =>
+                  entryItem.itemId === itemId ? data : entryItem,
+                ),
+              }
+            : entry,
+        ),
+      );
+      setItemDrafts((current) => {
+        const next = { ...current };
+        delete next[itemId];
+        return next;
+      });
+    } catch (error) {
+      flash(errorMessage(error), true);
     }
-    setEntries((current) =>
-      current.map((entry) =>
-        entry.id === selectedEntry.id
-          ? {
-              ...entry,
-              items: entry.items.map((entryItem) =>
-                entryItem.itemId === itemId ? updated : entryItem,
-              ),
-            }
-          : entry,
-      ),
-    );
+  };
+
+  const itemDraft = (item) => itemDrafts[item.itemId] || {
+    price: String(item.price),
+    quantity: String(item.quantity),
+  };
+
+  const updateItemDraft = (item, field, value) =>
+    setItemDrafts((current) => ({
+      ...current,
+      [item.itemId]: { ...itemDraft(item), [field]: value },
+    }));
+
+  const saveItemDraft = (item) => {
+    const draft = itemDraft(item);
+    const price = Number(draft.price);
+    const quantity = Number(draft.quantity);
+    if (!Number.isFinite(price) || price < 0 || !Number.isFinite(quantity) || quantity <= 0) {
+      flash("Ingresa un precio y una cantidad válidos.", true);
+      return;
+    }
+    updateItem(item.itemId, { price, quantity });
   };
 
   const removeItem = async (itemId) => {
     try {
       await api.delete(`/taller/ingresos/${selectedEntry.id}/items/${itemId}`);
-    } catch {
-      /* respaldo local */
+      setEntries((current) =>
+        current.map((entry) =>
+          entry.id === selectedEntry.id
+            ? {
+                ...entry,
+                items: entry.items.filter((entryItem) => entryItem.itemId !== itemId),
+              }
+            : entry,
+        ),
+      );
+      flash("Ítem eliminado de la orden");
+    } catch (error) {
+      flash(errorMessage(error), true);
     }
-    setEntries((current) =>
-      current.map((entry) =>
-        entry.id === selectedEntry.id
-          ? {
-              ...entry,
-              items: entry.items.filter(
-                (entryItem) => entryItem.itemId !== itemId,
-              ),
-            }
-          : entry,
-      ),
-    );
-    flash("Ítem eliminado de la orden");
   };
 
   const createClient = async (event) => {
     event.preventDefault();
-    let client = { ...clientForm, id: Date.now() };
     try {
-      const { data } = await api.post("/taller/clientes", client);
-      client = data;
-    } catch {
-      /* respaldo local */
+      const { data } = await api.post("/taller/clientes", clientForm);
+      setClients((current) => [...current, data]);
+      setClientForm({ name: "", rut: "", phone: "", email: "" });
+      flash("Cliente guardado");
+    } catch (error) {
+      flash(errorMessage(error), true);
     }
-    setClients((current) => [...current, client]);
-    setClientForm({ name: "", rut: "", phone: "", email: "" });
-    flash("Cliente guardado");
   };
 
   const createVehicle = async (event) => {
     event.preventDefault();
-    let vehicle = {
-      ...vehicleForm,
-      id: Date.now(),
-      plate: vehicleForm.plate.toUpperCase(),
-    };
     try {
-      const { data } = await api.post("/taller/vehiculos", vehicle);
-      vehicle = data;
-    } catch {
-      /* respaldo local */
+      const { data } = await api.post("/taller/vehiculos", {
+        ...vehicleForm,
+        clientId: Number(vehicleForm.clientId),
+      });
+      setVehicles((current) => [...current, data]);
+      setVehicleForm({ plate: "", brand: "", model: "", year: "", clientId: "" });
+      flash("Vehículo guardado");
+    } catch (error) {
+      flash(errorMessage(error), true);
     }
-    setVehicles((current) => [...current, vehicle]);
-    setVehicleForm({ plate: "", brand: "", model: "", year: "", clientId: "" });
-    flash("Vehículo guardado");
   };
 
   const importarTallerArchivo = async (event, type) => {
     event.preventDefault();
-    const archivo = event.currentTarget.elements.archivo.files[0];
+    const form = event.currentTarget;
+    const archivo = form.elements.archivo.files[0];
     if (!archivo) return;
     const data = new FormData();
     data.append("archivo", archivo);
@@ -776,7 +635,8 @@ function Taller() {
       const { data: taller } = await api.get("/taller");
       setClients(taller.clients);
       setVehicles(taller.vehicles);
-      event.currentTarget.reset();
+      form.reset();
+      flash(`${result.imported} registro(s) importado(s); ${result.rejected} rechazado(s).`, result.rejected > 0);
     } catch (error) {
       setImportResults((current) => ({
         ...current,
@@ -787,16 +647,17 @@ function Taller() {
 
   const createLabor = async (event) => {
     event.preventDefault();
-    let item = { ...laborForm, id: Date.now(), price: Number(laborForm.price) };
     try {
-      const { data } = await api.post("/taller/mano-obra", item);
-      item = data;
-    } catch {
-      /* respaldo local */
+      const { data } = await api.post("/taller/mano-obra", {
+        ...laborForm,
+        price: Number(laborForm.price),
+      });
+      setLabor((current) => [...current, data]);
+      setLaborForm({ name: "", code: "", unit: "Hora", price: "", duration: "" });
+      flash("Mano de obra agregada al catálogo");
+    } catch (error) {
+      flash(errorMessage(error), true);
     }
-    setLabor((current) => [...current, item]);
-    setLaborForm({ name: "", code: "", unit: "Hora", price: "", duration: "" });
-    flash("Mano de obra agregada al catálogo");
   };
 
   const createQuote = async () => {
@@ -804,146 +665,142 @@ function Taller() {
       flash("Selecciona un ingreso para generar su presupuesto");
       return;
     }
-    let quote = {
-      id: `local-quote-${quotes.length + 1}`,
-      number: `PRES-${String(quotes.length + 1).padStart(4, "0")}`,
-      entryId: selectedEntry.id,
-      status: "Borrador",
-      total: selectedEntry.items.reduce(
-        (sum, item) => sum + Number(item.price) * item.quantity,
-        0,
-      ),
-      created: today,
-    };
     try {
       const { data } = await api.post(
         `/taller/ingresos/${selectedEntry.id}/presupuesto`,
       );
-      quote = data;
-    } catch {
-      /* respaldo local */
+      setQuotes((current) => [data, ...current]);
+      setSelectedQuoteId(data.id);
+      setSection("presupuestos");
+      setShowServiceDetails(false);
+      flash("Presupuesto generado desde el ingreso");
+    } catch (error) {
+      flash(errorMessage(error), true);
     }
-    setQuotes((current) => [quote, ...current]);
-    flash("Presupuesto generado desde el ingreso");
   };
 
-  const createInvoice = async () => {
+  const openBilling = () => {
     if (!selectedEntry || selectedEntry.items.length === 0) {
       flash("Agrega mano de obra o repuestos antes de facturar");
       return;
     }
-    const total = selectedEntry.items.reduce(
-      (sum, item) => sum + Number(item.price) * item.quantity,
-      0,
-    );
-    let invoice = {
-      id: `local-invoice-${invoices.length + 1}`,
-      number: `FAC-${String(invoices.length + 1).padStart(5, "0")}`,
-      entryId: selectedEntry.id,
-      status: "Pendiente de pago",
-      total,
-      created: today,
-    };
-    try {
-      const { data } = await api.post(
-        `/taller/ingresos/${selectedEntry.id}/factura`,
-      );
-      invoice = data;
-    } catch {
-      /* respaldo local */
-    }
-    setInvoices((current) => [invoice, ...current]);
-    flash("Factura creada desde la orden de trabajo");
-  };
-
-  const updateInvoice = async (invoice, changes) => {
-    if (["Pagada", "Anulada"].includes(invoice.status)) {
-      flash("Esta factura está cerrada y no se puede modificar");
-      return;
-    }
-    const updated = {
-      ...invoice,
-      ...changes,
-      total: Number(changes.total ?? invoice.total) || 0,
-    };
-    try {
-      const { data } = await api.patch(
-        `/taller/facturas/${invoice.id}`,
-        changes,
-      );
-      setInvoices((current) =>
-        current.map((item) => (item.id === invoice.id ? data : item)),
-      );
-      flash("Factura actualizada");
-    } catch (error) {
-      if (error.response?.status === 409) {
-        flash(error.response.data);
-        return;
-      }
-      setInvoices((current) =>
-        current.map((item) => (item.id === invoice.id ? updated : item)),
-      );
-      flash("Factura actualizada localmente");
-    }
+    navigate(`/facturacion?orden=${encodeURIComponent(selectedEntry.id)}`);
   };
 
   const removeDocument = async (document, type) => {
     try {
       await api.delete(`/taller/${type}/${document.id}`);
     } catch (error) {
-      if (error.response?.status === 409) {
-        flash(error.response.data);
-        return;
-      }
+      flash(errorMessage(error), true);
+      return;
     }
     if (type === "presupuestos")
       setQuotes((current) => current.filter((item) => item.id !== document.id));
-    if (type === "facturas")
-      setInvoices((current) =>
-        current.filter((item) => item.id !== document.id),
-      );
-    flash(`${type === "presupuestos" ? "Presupuesto" : "Factura"} eliminado`);
+    if (selectedQuoteId === document.id) setSelectedQuoteId(null);
+    flash("Presupuesto eliminado");
   };
 
-  const updateSelectedEntry = (updates) => {
+  const updateSelectedEntry = async (updates) => {
+    if (!selectedEntry) return;
+    const id = selectedEntry.id;
+    const previous = entryDrafts.current.get(id) || selectedEntry;
+    const optimistic = { ...previous, ...updates };
+    entryDrafts.current.set(id, optimistic);
     setEntries((current) =>
-      current.map((entry) =>
-        entry.id === selectedEntry?.id ? { ...entry, ...updates } : entry,
-      ),
+      current.map((entry) => entry.id === id ? optimistic : entry),
     );
-    api.patch(`/taller/ingresos/${selectedEntry?.id}`, updates).catch(() => {});
+    const timer = entrySaveTimers.current.get(id);
+    if (timer) window.clearTimeout(timer);
+    entrySaveTimers.current.set(id, window.setTimeout(() => {
+      const latest = entryDrafts.current.get(id);
+      const priorSave = entrySaveQueues.current.get(id) || Promise.resolve();
+      const save = priorSave.catch(() => {}).then(() =>
+        api.patch(`/taller/ingresos/${id}`, {
+          description: latest.description,
+          status: latest.status,
+        })
+      );
+      entrySaveQueues.current.set(id, save);
+      save.then(({ data }) => {
+        if (entryDrafts.current.get(id) !== latest) return;
+        entryDrafts.current.delete(id);
+        setEntries((current) =>
+          current.map((entry) => entry.id === id ? { ...entry, ...data } : entry),
+        );
+      }).catch(async (error) => {
+        if (entryDrafts.current.get(id) !== latest) return;
+        entryDrafts.current.delete(id);
+        flash(errorMessage(error), true);
+        try {
+          const { data } = await api.get("/taller");
+          setEntries(data.entries);
+        } catch (refreshError) {
+          setTallerLoadError(`No se pudo actualizar la orden: ${errorMessage(refreshError)}`);
+        }
+      }).finally(() => {
+        if (entrySaveQueues.current.get(id) === save) entrySaveQueues.current.delete(id);
+      });
+      entrySaveTimers.current.delete(id);
+    }, 400));
   };
 
   const handlePhotos = (event) =>
-    updateEntryForm(
-      "photos",
-      Array.from(event.target.files || []).map((file) => file.name),
-    );
+    updateEntryForm("photos", Array.from(event.target.files || []));
 
-  const uploadPhotos = async (event) => {
-    if (!selectedEntry) return;
-    for (const file of Array.from(event.target.files || [])) {
+  const uploadPhotoFiles = async (entryId, files) => {
+    const uploaded = [];
+    let failures = 0;
+    let firstError = "";
+    for (const file of files) {
       const formData = new FormData();
       formData.append("foto", file);
       try {
         const { data } = await api.post(
-          `/taller/ingresos/${selectedEntry.id}/fotos`,
+          `/taller/ingresos/${entryId}/fotos`,
           formData,
           { headers: { "Content-Type": "multipart/form-data" } },
         );
-        updateSelectedEntry({
-          photos: [...(selectedEntry.photos || []), data],
-        });
-      } catch {
-        flash("No se pudo subir una de las fotos");
+        uploaded.push(data);
+      } catch (error) {
+        failures += 1;
+        if (!firstError) firstError = errorMessage(error);
       }
     }
+    if (uploaded.length) {
+      setEntries((current) =>
+        current.map((entry) =>
+          entry.id === entryId
+            ? { ...entry, photos: [...(entry.photos || []), ...uploaded] }
+            : entry,
+        ),
+      );
+    }
+    return { failures, firstError };
+  };
+
+  const uploadPhotos = async (event) => {
+    if (!selectedEntry) return;
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+    const { failures, firstError } = await uploadPhotoFiles(selectedEntry.id, files);
+    flash(
+      failures
+        ? `${files.length - failures} foto(s) subidas; ${failures} no se pudieron guardar${firstError ? `: ${firstError}` : ""}.`
+        : `${files.length} foto(s) subidas.`,
+      failures > 0,
+    );
   };
 
   if (ordenId) {
     return (
       <main className="taller-page standalone-order-page">
-        {notice && <div className="taller-toast"><FiCheck /> {notice}</div>}
+        {notice && <div className={`taller-toast ${noticeError ? "error" : ""}`} role={noticeError ? "alert" : "status"}>{noticeError ? <FiX /> : <FiCheck />} {notice}</div>}
+        {tallerLoadError && (
+          <div className="taller-load-error" role="alert">
+            {tallerLoadError}
+            <button className="secondary-button" onClick={() => window.location.reload()}>Reintentar</button>
+          </div>
+        )}
         {!selectedEntry ? (
           <section className="standalone-order-state">
             <h1>{tallerLoaded ? "Orden no encontrada" : "Cargando orden..."}</h1>
@@ -990,7 +847,6 @@ function Taller() {
                   updateCatalogDraft={updateCatalogDraft}
                   addCatalogItem={addCatalogItem}
                   createCustomLabor={createCustomLabor}
-                  createCustomPart={createCustomPart}
                   className="standalone-catalog"
                 />
               </section>
@@ -1004,8 +860,8 @@ function Taller() {
                   {selectedEntry.items.map(item => (
                     <div className="standalone-cost-row" key={item.itemId}>
                       <div><strong>{item.name}</strong><small>{item.type === "labor" ? "Mano de obra" : "Repuesto"} · {item.code || "Sin código"}</small></div>
-                      <label>Precio<input type="number" min="0" value={item.price} onChange={event => updateItem(item.itemId, { price: event.target.value })} /></label>
-                      <label>{item.type === "labor" ? "Horas" : "Cantidad"}<input type="number" min={item.type === "labor" ? "0.25" : "1"} step={item.type === "labor" ? "0.25" : "1"} value={item.quantity} onChange={event => updateItem(item.itemId, { quantity: event.target.value })} /></label>
+                      <label>Precio<input type="number" min="0" value={itemDraft(item).price} onChange={event => updateItemDraft(item, "price", event.target.value)} onBlur={() => saveItemDraft(item)} /></label>
+                      <label>{item.type === "labor" ? "Horas" : "Cantidad"}<input type="number" min={item.type === "labor" ? "0.25" : "1"} step={item.type === "labor" ? "0.25" : "1"} value={itemDraft(item).quantity} onChange={event => updateItemDraft(item, "quantity", event.target.value)} onBlur={() => saveItemDraft(item)} /></label>
                       <strong className="standalone-cost-total">{money(Number(item.price) * Number(item.quantity))}</strong>
                       <button className="icon-button danger" title="Quitar concepto" onClick={() => removeItem(item.itemId)}><FiX /></button>
                     </div>
@@ -1013,14 +869,9 @@ function Taller() {
                   {!selectedEntry.items.length && <div className="empty-inline">Todavía no hay conceptos. Agrégalos desde el catálogo.</div>}
                 </div>
                 <div className="standalone-total-row"><span>Total de la orden</span><strong>{money(selectedTotal)}</strong></div>
-                <div className="payment-editor standalone-payment">
-                  <label>Adelanto<input type="number" min="0" value={paymentForm.advance} onChange={event => setPaymentForm({ ...paymentForm, advance: event.target.value })} /></label>
-                  <label>Forma de pago<select value={paymentForm.method} onChange={event => setPaymentForm({ ...paymentForm, method: event.target.value })}><option>Efectivo</option><option>Cheque</option><option>Transferencia</option><option>Depósito</option></select></label>
-                  <label className="wide">Observaciones<textarea value={paymentForm.observations} onChange={event => setPaymentForm({ ...paymentForm, observations: event.target.value })} placeholder="Notas para la orden impresa" /></label>
-                </div>
               </section>
             </div>
-            <WorkOrderPrintDocument selectedEntry={selectedEntry} selectedClient={selectedClient} selectedVehicleData={selectedVehicleData} selectedTotal={selectedTotal} selectedBalance={selectedBalance} paymentForm={paymentForm} />
+            <WorkOrderPrintDocument selectedEntry={selectedEntry} selectedClient={selectedClient} selectedVehicleData={selectedVehicleData} selectedTotal={selectedTotal} />
           </>
         )}
       </main>
@@ -1030,8 +881,8 @@ function Taller() {
   return (
     <main className="taller-page">
       {notice && (
-        <div className="taller-toast">
-          <FiCheck /> {notice}
+        <div className={`taller-toast ${noticeError ? "error" : ""}`} role={noticeError ? "alert" : "status"}>
+          {noticeError ? <FiX /> : <FiCheck />} {notice}
         </div>
       )}
       <header className="taller-header">
@@ -1055,7 +906,7 @@ function Taller() {
           >
             <FiPlus /> Nuevo ingreso
           </button>
-          {selectedEntry && (
+          {selectedEntry && section !== "presupuestos" && (
             <>
               <button
                 className="secondary-button"
@@ -1070,6 +921,13 @@ function Taller() {
           )}
         </div>
       </header>
+
+      {tallerLoadError && (
+        <div className="taller-load-error" role="alert">
+          <span>{tallerLoadError}</span>
+          <button className="secondary-button" onClick={() => window.location.reload()}>Reintentar</button>
+        </div>
+      )}
 
       <section className="taller-stats">
         <div>
@@ -1117,12 +975,20 @@ function Taller() {
           ["labor", "Mano de obra"],
           ["repuestos", "Repuestos"],
           ["presupuestos", "Presupuestos"],
-          ["facturas", "Facturas"],
+          ["facturacion", "Facturación"],
         ].map(([id, label]) => (
           <button
             className={section === id ? "active" : ""}
             key={id}
             onClick={() => {
+              if (id === "facturacion") {
+                navigate(
+                  selectedEntry
+                    ? `/facturacion?orden=${encodeURIComponent(selectedEntry.id)}`
+                    : "/facturacion",
+                );
+                return;
+              }
               setSection(id);
               setShowServiceDetails(false);
             }}
@@ -1258,6 +1124,7 @@ function Taller() {
               <label className="wide upload-label">
                 <FiCamera /> Evidencia fotográfica
                 <input
+                  ref={entryPhotoInput}
                   type="file"
                   accept="image/*"
                   multiple
@@ -1349,8 +1216,8 @@ function Taller() {
               <button className="secondary-button" onClick={createQuote}>
                 <FiEdit3 /> Crear presupuesto
               </button>
-              <button className="primary-button" onClick={createInvoice}>
-                Facturar
+              <button className="primary-button" onClick={openBilling}>
+                Ir a facturación
               </button>
             </div>
           </div>
@@ -1389,6 +1256,20 @@ function Taller() {
               />
               <small>{selectedEntry.photos?.length || 0} foto(s)</small>
             </label>
+            {selectedEntry.photos?.length > 0 && (
+              <div className="workshop-photo-links">
+                {selectedEntry.photos.map((photo) => (
+                  <a
+                    key={photo.id}
+                    href={`${apiOrigin}${photo.path}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {photo.originalName}
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
           <div className="item-columns">
             <div>
@@ -1508,43 +1389,73 @@ function Taller() {
           quotes={quotes}
           entries={entries}
           formatMoney={money}
-          onEditEntry={(entryId) => {
-            setSection("ingresos");
-            setSelectedEntryId(entryId);
-            setShowServiceDetails(true);
-          }}
+          selectedQuoteId={selectedQuoteId}
+          onViewQuote={setSelectedQuoteId}
           onRemove={removeDocument}
         />
       )}
-      {section === "facturas" && (
-        <FacturasSection
-          invoices={invoices}
-          entries={entries}
-          onUpdate={updateInvoice}
-          onOpen={(entryId) => navigate(`/taller/orden/${entryId}`)}
-          onRemove={removeDocument}
+      {section === "presupuestos" && selectedQuote && (
+        <section className="panel quote-preview">
+          <div className="panel-heading">
+            <div>
+              <span className="eyebrow">DETALLE GUARDADO</span>
+              <h2>{selectedQuote.number}</h2>
+              <p className="panel-description">
+                Copia del presupuesto creada el {String(selectedQuote.created).slice(0, 10)}. Los cambios posteriores a la orden no modifican este documento.
+              </p>
+            </div>
+            <div className="panel-actions">
+              <button className="secondary-button" onClick={() => setSelectedQuoteId(null)}>Cerrar</button>
+              <button className="primary-button" onClick={() => window.print()} disabled={!quoteEntry}>
+                <FiPrinter /> Imprimir presupuesto
+              </button>
+            </div>
+          </div>
+          {!quoteEntry ? (
+            <div className="empty-inline">No se encontró la orden asociada a este presupuesto.</div>
+          ) : (
+            <div className="quote-preview-items">
+              {selectedQuote.items?.map((item, index) => (
+                <div key={`${selectedQuote.id}-${index}`}>
+                  <span>{item.name} · {item.quantity} {item.type === "labor" ? "h" : "un."}</span>
+                  <strong>{money(Number(item.price) * Number(item.quantity))}</strong>
+                </div>
+              ))}
+              <div className="quote-preview-total"><span>Total guardado</span><strong>{money(selectedQuote.total)}</strong></div>
+            </div>
+          )}
+        </section>
+      )}
+      {section === "presupuestos" && selectedQuote && quoteEntry && (
+        <WorkOrderPrintDocument
+          selectedEntry={{ ...quoteEntry, items: selectedQuote.items || [] }}
+          selectedClient={quoteClient}
+          selectedVehicleData={quoteVehicle}
+          selectedTotal={selectedQuote.total}
+          documentType="PRESUPUESTO"
+          documentNumber={selectedQuote.number}
+          descriptionTitle="Descripción del servicio"
+          itemsTitle="Detalle presupuestado"
         />
       )}
       {section === "ingresos" && selectedEntry && (
         <OrdenItemsSection
           selectedEntry={selectedEntry}
-          paymentForm={paymentForm}
-          setPaymentForm={setPaymentForm}
-          onUpdateItem={updateItem}
+          itemDraft={itemDraft}
+          onUpdateItemDraft={updateItemDraft}
+          onSaveItemDraft={saveItemDraft}
           onRemoveItem={removeItem}
           onPrint={printWorkOrder}
           formatMoney={money}
         />
       )}
 
-      {selectedEntry && (
+      {selectedEntry && section !== "presupuestos" && (
         <WorkOrderPrintDocument
           selectedEntry={selectedEntry}
           selectedClient={selectedClient}
           selectedVehicleData={selectedVehicleData}
           selectedTotal={selectedTotal}
-          selectedBalance={selectedBalance}
-          paymentForm={paymentForm}
           descriptionTitle="Descripción"
           itemsTitle="Detalle de trabajos"
         />
@@ -1775,12 +1686,9 @@ function Taller() {
               <div className="service-observations">
                 <strong>OBSERVACIONES</strong>
                 <textarea
-                  value={paymentForm.observations}
+                  value={selectedEntry.observations || ""}
                   onChange={(event) =>
-                    setPaymentForm({
-                      ...paymentForm,
-                      observations: event.target.value,
-                    })
+                    updateSelectedEntry({ observations: event.target.value })
                   }
                   placeholder="Escribe observaciones del servicio"
                 />
@@ -1796,23 +1704,11 @@ function Taller() {
               <span>Total del servicio</span>
               <strong>{money(selectedTotal)}</strong>
             </div>
-            <label>
-              <span>Adelanto</span>
-              <input
-                type="number"
-                min="0"
-                value={paymentForm.advance}
-                onChange={(event) =>
-                  setPaymentForm({
-                    ...paymentForm,
-                    advance: event.target.value,
-                  })
-                }
-              />
-            </label>
             <div>
-              <span>Saldo restante</span>
-              <strong>{money(selectedBalance)}</strong>
+              <span>Pagos y abonos</span>
+              <button className="secondary-button" onClick={openBilling}>
+                Ir a Facturación
+              </button>
             </div>
           </section>
         )}
@@ -1830,7 +1726,6 @@ function Taller() {
             updateCatalogDraft={updateCatalogDraft}
             addCatalogItem={addCatalogItem}
             createCustomLabor={createCustomLabor}
-            createCustomPart={createCustomPart}
           />
         )}
     </main>

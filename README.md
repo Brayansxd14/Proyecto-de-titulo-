@@ -38,7 +38,7 @@ La aplicación está preparada para uso local y con conexión a PostgreSQL, con 
 
 ### Base de datos
 - PostgreSQL
-- Esquema principal gestionado desde `src/Backend/schema.sql`
+- Esquema parcial de RR.HH., proveedores y taller en `src/Backend/schema.sql`; las tablas base de usuarios, empleados, asistencia e inventario deben provisionarse por separado.
 
 ## Estructura del proyecto
 
@@ -67,7 +67,6 @@ gestor-taller/
 │     └─ styles/
 ├─ uploads/
 │  └─ ingresos/
-├─ .env.example
 ├─ eslint.config.js
 ├─ index.html
 ├─ package.json
@@ -115,7 +114,9 @@ Archivos principales:
 - `src/Frontend/Paginas/RRHH/RRHH.jsx`
 
 ### 4. Facturación
-Módulo de cobros, estados de facturas y flujo financiero.
+Módulo interno de cobros: guarda una copia de los trabajos y repuestos de cada orden, permite descuentos, IVA informativo configurable, abonos parciales e impresión. Las facturas se pueden anular conservando el historial. No genera documentos tributarios ni envía datos al SII.
+
+La sección **Conexión con el SII** deja visible la preparación para una futura integración con LibreDTE: muestra si existen las variables `LIBREDTE_RUT` y `LIBREDTE_HASH` en el backend sin revelar sus valores, y lista los requisitos previos. No agregues credenciales durante el piloto: la emisión está forzada a desactivada, no se realizan llamadas al SII/LibreDTE ni se emiten DTE, y la presencia de credenciales no habilita emisión.
 
 Archivos principales:
 - `src/Backend/Rutas_Backend/facturacionRoutes.js`
@@ -123,7 +124,7 @@ Archivos principales:
 - `src/Frontend/Paginas/Facturacion.jsx`
 
 ### 5. Proveedores
-Control de proveedores y relaciones comerciales.
+Control de proveedores y registro de sus facturas. Registrar una compra recibe sus repuestos en inventario dentro de la misma transacción; si el código/SKU ya existe, suma las unidades recibidas y actualiza su costo de compra, sin alterar el precio de venta.
 
 ### 6. Usuarios y autenticación
 - login
@@ -145,14 +146,22 @@ Crea un archivo `.env` en la raíz del proyecto con una configuración similar a
 PORT=3000
 DATABASE_URL=postgresql://postgres:password@localhost:5432/tallerdb
 DATABASE_SSL=false
-DATABASE_SSL_REJECT_UNAUTHORIZED=false
+DATABASE_SSL_REJECT_UNAUTHORIZED=true
 DB_CONNECTION_TIMEOUT_MS=10000
 JWT_SECRET=tu_clave_secreta_muy_segura
 ```
 
-> Si el proyecto se conecta a PostgreSQL remoto con SSL, configura `DATABASE_SSL=true` y ajusta el certificado según tu entorno.
+Para PostgreSQL local, deja `DATABASE_SSL=false`. Para una base remota, configura `DATABASE_SSL=true` y conserva la validación del certificado (`DATABASE_SSL_REJECT_UNAUTHORIZED=true`); configura la CA si el proveedor lo requiere. No desactives la validación TLS en producción.
 
-También puedes usar el archivo [.env.example](.env.example) como base.
+Define `JWT_SECRET` con un secreto aleatorio de al menos 32 caracteres; no uses un valor de ejemplo ni lo compartas.
+
+`SUPABASE_URL` y las claves `SUPABASE_*` identifican la API de Supabase; no son credenciales de conexión PostgreSQL para este backend. La aplicación consulta la base usando `pg`, por lo que debes configurar `DATABASE_URL` con la URI PostgreSQL que entrega Supabase en **Connect**. No compartas esa URI, ya que contiene la contraseña de la base.
+
+Si Node.js informa `SELF_SIGNED_CERT_IN_CHAIN` al conectarse a Supabase, descarga el certificado CA de producción desde **Supabase Dashboard → Database → Settings → SSL Configuration**. Guarda el archivo `.crt` localmente y define `PGSSLROOTCERT` con su ruta absoluta en `.env` (por ejemplo, `C:\ruta\segura\prod-ca-2021.crt`). Mantén `DATABASE_SSL=true` y `DATABASE_SSL_REJECT_UNAUTHORIZED=true`; no desactives la validación del certificado.
+
+### Acceso a las APIs
+
+Las rutas bajo `/api` requieren `Authorization: Bearer <token>`, excepto `POST /api/login` y `GET /api/health`. Las rutas de administración de usuarios requieren además el rol `admin`. El primer usuario administrador debe provisionarse por un procedimiento controlado directamente en la base de datos; no existe un registro público inicial.
 
 ## Instalación
 
@@ -170,11 +179,14 @@ CREATE DATABASE tallerdb;
 ```
 
 4. Ajusta la conexión en `.env`
-5. Ejecuta el esquema SQL
+5. Provisiona las tablas base que consulta el backend (`usuarios`, `empleados`, `asistencia`, `inventario` y `salidas_inventario`) con un esquema compatible. Este repositorio no incluye actualmente un script completo para crearlas.
+6. Ejecuta el esquema parcial SQL, que requiere que `empleados` ya exista
 
 ```bash
 psql -U postgres -d tallerdb -f src/Backend/schema.sql
 ```
+
+El servidor agrega además la columna `empleados.salario` al iniciar. El endpoint `http://localhost:3000/api/health` informa el estado de API y PostgreSQL; responde `503` si la base no está disponible.
 
 ## Ejecución
 
@@ -242,13 +254,22 @@ La base de la API está montada bajo `/api`.
 - `PATCH /api/taller/ingresos/:id/items/:itemId`
 - `DELETE /api/taller/ingresos/:id/items/:itemId`
 - `POST /api/taller/ingresos/:id/presupuesto`
-- `POST /api/taller/ingresos/:id/factura`
 - `POST /api/taller/ingresos/:id/fotos`
 
 ### Proveedores
 - `GET /api/proveedores`
 - `POST /api/proveedores`
 - `PATCH /api/proveedores/:id`
+- `GET /api/proveedores/facturas`
+- `POST /api/proveedores/facturas`
+
+### Facturación interna
+- `GET /api/facturacion/sii/estado` (estado seguro de preparación; nunca devuelve secretos)
+- `GET /api/facturacion`
+- `GET /api/facturacion/:id`
+- `POST /api/facturacion/ordenes/:id/factura` (JSON opcional: `discount`, `taxRate`)
+- `POST /api/facturacion/:id/pagos` (JSON: `amount`, `method`, `note`)
+- `PATCH /api/facturacion/:id/anular`
 - `DELETE /api/proveedores/:id`
 
 ### RR.HH.
@@ -273,7 +294,10 @@ Incluye tablas críticas como:
 - `taller_ingresos`
 - `taller_ingreso_items`
 - `taller_facturas`
+- `taller_factura_items` y `taller_factura_pagos`
+- `facturas_proveedores` y `facturas_proveedores_items`
 - `taller_presupuestos`
+- `taller_presupuesto_items` (copia de conceptos al crear presupuesto)
 
 ## Archivos importantes
 

@@ -4,8 +4,9 @@ import Login from './Frontend/Paginas/Login.jsx'
 import Inventario from './Frontend/Paginas/Inventario.jsx'
 import Inicio from './Frontend/Paginas/Inicio.jsx'
 import './Frontend/styles/Sidebar.css'   
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FiLogOut } from "react-icons/fi";
+import api from './Frontend/services/api'
 import Empleados from './Frontend/Paginas/Empleados.jsx' 
 import Asistencia from './Frontend/Paginas/Asistencia.jsx'
 import Proveedores from './Frontend/Paginas/Proveedores.jsx'
@@ -15,30 +16,77 @@ import Taller from './Frontend/Paginas/Taller.jsx'
 import Facturacion from './Frontend/Paginas/Facturacion.jsx'
 
 // 🔹 Componente para proteger rutas
-const PrivateRoute = ({ children }) => {
-  const token = localStorage.getItem('token')
-  return token ? children : <Navigate to="/" />
+const PrivateRoute = ({ children, authStatus }) => {
+  if (authStatus === 'checking') return null
+  return authStatus === 'authenticated' ? children : <Navigate to="/" replace />
 }
 
 function App() {
+  const [authStatus, setAuthStatus] = useState(() =>
+    localStorage.getItem('token') ? 'checking' : 'unauthenticated'
+  )
+  const [currentUser, setCurrentUser] = useState(null)
+
+  useEffect(() => {
+    if (!localStorage.getItem('token')) {
+      return
+    }
+
+    api.get('/session')
+      .then(({ data }) => {
+        setCurrentUser(data.usuario)
+        setAuthStatus('authenticated')
+      })
+      .catch((error) => {
+        localStorage.removeItem('token')
+        setCurrentUser(null)
+        setAuthStatus('unauthenticated')
+        if (error.response?.status !== 401) {
+          console.error('No se pudo validar la sesión', error)
+        }
+      })
+  }, [])
+
   return (
     <Router>
       <div className="app-layout">
-        <Sidebar />
+        <Sidebar
+          authStatus={authStatus}
+          onLogout={() => {
+            setCurrentUser(null)
+            setAuthStatus('unauthenticated')
+          }}
+        />
         <div className="main-content">
           <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/inicio" element={<PrivateRoute><Inicio /></PrivateRoute>} />
-            <Route path="/rrhh" element={<PrivateRoute><RRHH /></PrivateRoute>} />
-            <Route path="/usuarios" element={<PrivateRoute><Usuarios /></PrivateRoute>} />
-            <Route path="/inventario" element={<PrivateRoute><Inventario /></PrivateRoute>} />
-            <Route path="/proveedores" element={<PrivateRoute><Proveedores /></PrivateRoute>} />
-            <Route path="/empleados" element={<PrivateRoute><Empleados /></PrivateRoute>} />
-            <Route path="/asistencia" element={<PrivateRoute><Asistencia /></PrivateRoute>} />
-            <Route path="/taller" element={<PrivateRoute><Taller /></PrivateRoute>} />
-            <Route path="/taller/orden/:ordenId" element={<PrivateRoute><Taller /></PrivateRoute>} />
-            <Route path="/facturacion" element={<PrivateRoute><Facturacion /></PrivateRoute>} />
-            <Route path="/rrhh/:modulo" element={<PrivateRoute><RRHHModulo /></PrivateRoute>} />
+            <Route path="/" element={
+              authStatus === 'checking'
+                ? null
+                : authStatus === 'authenticated'
+                  ? <Navigate to="/inicio" replace />
+                  : <Login onLogin={(user) => {
+                    setCurrentUser(user)
+                    setAuthStatus('authenticated')
+                  }} />
+            } />
+            <Route path="/inicio" element={<PrivateRoute authStatus={authStatus}><Inicio /></PrivateRoute>} />
+            <Route path="/rrhh" element={<PrivateRoute authStatus={authStatus}><RRHH isAdmin={currentUser?.rol?.trim().toLowerCase() === 'admin'} /></PrivateRoute>} />
+            <Route path="/usuarios" element={
+              <PrivateRoute authStatus={authStatus}>
+                {currentUser?.rol?.trim().toLowerCase() === 'admin'
+                  ? <Usuarios />
+                  : <section role="alert"><h2>Acceso restringido</h2><p>La gestión de usuarios está disponible solo para cuentas con rol administrador.</p></section>}
+              </PrivateRoute>
+            } />
+            <Route path="/inventario" element={<PrivateRoute authStatus={authStatus}><Inventario /></PrivateRoute>} />
+            <Route path="/proveedores" element={<PrivateRoute authStatus={authStatus}><Proveedores /></PrivateRoute>} />
+            <Route path="/empleados" element={<PrivateRoute authStatus={authStatus}><Empleados /></PrivateRoute>} />
+            <Route path="/asistencia" element={<PrivateRoute authStatus={authStatus}><Asistencia /></PrivateRoute>} />
+            <Route path="/taller" element={<PrivateRoute authStatus={authStatus}><Taller /></PrivateRoute>} />
+            <Route path="/taller/orden/:ordenId" element={<PrivateRoute authStatus={authStatus}><Taller /></PrivateRoute>} />
+            <Route path="/facturacion" element={<PrivateRoute authStatus={authStatus}><Facturacion /></PrivateRoute>} />
+            <Route path="/rrhh/:modulo" element={<PrivateRoute authStatus={authStatus}><RRHHModulo /></PrivateRoute>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
       </div>
@@ -46,18 +94,17 @@ function App() {
   )
 }
 
-function Sidebar() {
+function Sidebar({ authStatus, onLogout }) {
   const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState(false)
 
   const handleLogout = () => {
-    localStorage.removeItem('token')   // 🔹 borra token
-    navigate('/')                      // 🔹 redirige al login
+    localStorage.removeItem('token')
+    onLogout()
+    navigate('/')
   }
 
-  // 🔹 Ocultar barra si no hay token
-  const token = localStorage.getItem('token')
-  if (!token) return null
+  if (authStatus !== 'authenticated') return null
 
   return (
     <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>

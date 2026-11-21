@@ -1,4 +1,4 @@
-import { FiSearch, FiTrash2 } from "react-icons/fi";
+import { FiEye, FiSearch, FiSlash } from "react-icons/fi";
 
 export default function ListaFacturasSection({
   visibleInvoices,
@@ -9,8 +9,8 @@ export default function ListaFacturasSection({
   statusFilter,
   onSearchChange,
   onStatusFilterChange,
-  onUpdateStatus,
-  onDelete,
+  onView,
+  onCancel,
   formatMoney,
   formatDate,
 }) {
@@ -26,7 +26,7 @@ export default function ListaFacturasSection({
           <input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Buscar número, cliente u orden" />
         </label>
         <select aria-label="Filtrar por estado" value={statusFilter} onChange={(event) => onStatusFilterChange(event.target.value)}>
-          <option>Todas</option><option>Pendiente de pago</option><option>Pagada</option><option>Anulada</option>
+          <option>Todas</option><option>Pendiente de pago</option><option>Abonada</option><option>Pagada</option><option>Anulada</option>
         </select>
       </div>
 
@@ -38,20 +38,18 @@ export default function ListaFacturasSection({
             <thead><tr><th>Factura</th><th>Cliente / orden</th><th>Vehículo</th><th>Emisión</th><th>Estado</th><th>Total</th><th aria-label="Acciones" /></tr></thead>
             <tbody>
               {visibleInvoices.map((invoice) => {
-                const locked = ["Pagada", "Anulada"].includes(invoice.status);
                 return (
                   <tr key={invoice.id}>
                     <td><strong>{invoice.number}</strong><small>{invoice.entryNumber}</small></td>
                     <td><strong>{invoice.clientName}</strong><small>{invoice.clientRut}</small></td>
                     <td><strong>{invoice.plate}</strong><small>{invoice.brand} {invoice.model}</small></td>
                     <td>{formatDate(invoice.created)}</td>
-                    <td>
-                      <select className={`billing-status ${invoice.status === "Pagada" ? "paid" : invoice.status === "Anulada" ? "void" : "pending"}`} aria-label={`Estado de ${invoice.number}`} value={invoice.status} disabled={locked} onChange={(event) => onUpdateStatus(invoice, event.target.value)}>
-                        <option>Pendiente de pago</option><option>Pagada</option><option>Anulada</option>
-                      </select>
-                    </td>
+                    <td><span className={`billing-status-label ${invoice.status === "Pagada" ? "paid" : invoice.status === "Anulada" ? "void" : "pending"}`}>{invoice.status}</span><small>Saldo {formatMoney(invoice.balance)}</small></td>
                     <td className="billing-amount">{formatMoney(invoice.total)}</td>
-                    <td>{!locked && <button className="billing-delete" type="button" title={`Eliminar ${invoice.number}`} onClick={() => onDelete(invoice)}><FiTrash2 /></button>}</td>
+                    <td className="billing-row-actions">
+                      <button type="button" title={`Ver factura ${invoice.number}`} onClick={() => onView(invoice)}><FiEye /></button>
+                      {invoice.status !== "Anulada" && <button type="button" className="cancel" title={`Anular ${invoice.number}`} onClick={() => onCancel(invoice)}><FiSlash /></button>}
+                    </td>
                   </tr>
                 );
               })}

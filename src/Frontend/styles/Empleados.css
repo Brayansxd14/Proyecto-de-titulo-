@@ -7,6 +7,37 @@
   align-items: center;
 }
 
+.empleados-import {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.empleados-import-actions,
+.empleados-import form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.empleados-import form small,
+.empleados-import form label {
+  flex-basis: 100%;
+}
+
+.empleados-import-result {
+  display: grid;
+  gap: 6px;
+}
+
+.empleados-import-result ul {
+  margin: 0;
+}
+
 .empleados-busqueda input {
   flex: 1 1 220px;
 }

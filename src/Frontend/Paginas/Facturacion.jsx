@@ -5,6 +5,9 @@ import '../styles/Facturacion.css'
 import MetricasSection from './Facturacion/sections/MetricasSection.jsx'
 import NuevaFacturaSection from './Facturacion/sections/NuevaFacturaSection.jsx'
 import ListaFacturasSection from './Facturacion/sections/ListaFacturasSection.jsx'
+import FacturaInternaDetail from './Facturacion/sections/FacturaInternaDetail.jsx'
+import FacturaElectronicaSection from './Facturacion/sections/FacturaElectronicaSection.jsx'
+import { useSearchParams } from 'react-router-dom'
 
 const money = value => `$${Number(value || 0).toLocaleString('es-CL')}`
 const dateLabel = value => value ? String(value).slice(0, 10).split('-').reverse().join('/') : 'Sin fecha'
@@ -15,15 +18,34 @@ const errorMessage = error => {
 }
 
 function Facturacion() {
+  const [searchParams] = useSearchParams()
+  const requestedOrderId = searchParams.get('orden') || ''
   const [invoices, setInvoices] = useState([])
   const [orders, setOrders] = useState([])
   const [selectedOrderId, setSelectedOrderId] = useState('')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('Todas')
   const [loading, setLoading] = useState(true)
+  const [selectedInvoice, setSelectedInvoice] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [siiStatus, setSiiStatus] = useState(null)
+  const [siiLoading, setSiiLoading] = useState(true)
+  const [siiError, setSiiError] = useState('')
+
+  const cargarEstadoSii = async () => {
+    setSiiLoading(true)
+    setSiiError('')
+    try {
+      const { data } = await api.get('/facturacion/sii/estado')
+      setSiiStatus(data)
+    } catch (requestError) {
+      setSiiError(errorMessage(requestError))
+    } finally {
+      setSiiLoading(false)
+    }
+  }
 
   const cargarFacturacion = async () => {
     setLoading(true)
@@ -35,7 +57,9 @@ function Facturacion() {
       setSelectedOrderId(current =>
         data.orders.some(order => String(order.entryId) === current)
           ? current
-          : String(data.orders[0]?.entryId || '')
+          : data.orders.some(order => String(order.entryId) === requestedOrderId)
+            ? requestedOrderId
+            : String(data.orders[0]?.entryId || '')
       )
     } catch (requestError) {
       setError(errorMessage(requestError))
@@ -51,7 +75,11 @@ function Facturacion() {
         if (!active) return
         setInvoices(data.invoices)
         setOrders(data.orders)
-        setSelectedOrderId(String(data.orders[0]?.entryId || ''))
+        setSelectedOrderId(
+          data.orders.some(order => String(order.entryId) === requestedOrderId)
+            ? requestedOrderId
+            : String(data.orders[0]?.entryId || '')
+        )
       })
       .catch(requestError => {
         if (active) setError(errorMessage(requestError))
@@ -61,13 +89,30 @@ function Facturacion() {
       })
 
     return () => { active = false }
+  }, [requestedOrderId])
+
+  useEffect(() => {
+    let active = true
+    api.get('/facturacion/sii/estado')
+      .then(({ data }) => {
+        if (active) setSiiStatus(data)
+      })
+      .catch(requestError => {
+        if (active) setSiiError(errorMessage(requestError))
+      })
+      .finally(() => {
+        if (active) setSiiLoading(false)
+      })
+
+    return () => { active = false }
   }, [])
 
   const selectedOrder = orders.find(order => String(order.entryId) === selectedOrderId)
-  const pendingInvoices = invoices.filter(invoice => invoice.status === 'Pendiente de pago')
+  const pendingInvoices = invoices.filter(invoice => !['Pagada', 'Anulada'].includes(invoice.status))
   const paidInvoices = invoices.filter(invoice => invoice.status === 'Pagada')
-  const pendingTotal = pendingInvoices.reduce((sum, invoice) => sum + Number(invoice.total), 0)
-  const paidTotal = paidInvoices.reduce((sum, invoice) => sum + Number(invoice.total), 0)
+  const pendingTotal = pendingInvoices.reduce((sum, invoice) => sum + Number(invoice.balance), 0)
+  const paidTotal = invoices.filter(invoice => invoice.status !== 'Anulada')
+    .reduce((sum, invoice) => sum + Number(invoice.amountPaid), 0)
   const visibleInvoices = invoices.filter(invoice => {
     const matchesStatus = statusFilter === 'Todas' || invoice.status === statusFilter
     const query = search.trim().toLowerCase()
@@ -75,16 +120,26 @@ function Facturacion() {
     return matchesStatus && (!query || haystack.includes(query))
   })
 
-  const crearFactura = async event => {
-    event.preventDefault()
+  const cargarDetalle = async invoice => {
+    setError('')
+    try {
+      const { data } = await api.get(`/facturacion/${invoice.id}`)
+      setSelectedInvoice(data)
+    } catch (requestError) {
+      setError(errorMessage(requestError))
+    }
+  }
+
+  const crearFactura = async options => {
     if (!selectedOrder) return
     setSaving(true)
     setError('')
     setNotice('')
     try {
-      await api.post(`/facturacion/ordenes/${selectedOrder.entryId}/factura`)
+      const { data } = await api.post(`/facturacion/ordenes/${selectedOrder.entryId}/factura`, options)
       setNotice(`Factura creada para la orden ${selectedOrder.entryNumber}`)
       await cargarFacturacion()
+      await cargarDetalle(data)
     } catch (requestError) {
       setError(errorMessage(requestError))
     } finally {
@@ -92,27 +147,35 @@ function Facturacion() {
     }
   }
 
-  const actualizarEstado = async (invoice, status) => {
+  const registrarPago = async payment => {
+    if (!selectedInvoice) return
+    setSaving(true)
     setError('')
     try {
-      const { data } = await api.patch(`/taller/facturas/${invoice.id}`, { status })
-      setInvoices(current => current.map(item => item.id === invoice.id ? { ...item, ...data } : item))
-      setNotice(`Factura ${invoice.number}: ${status.toLowerCase()}`)
+      await api.post(`/facturacion/${selectedInvoice.id}/pagos`, payment)
+      setNotice(`Abono registrado para la factura ${selectedInvoice.number}`)
+      await cargarFacturacion()
+      await cargarDetalle(selectedInvoice)
     } catch (requestError) {
       setError(errorMessage(requestError))
+    } finally {
+      setSaving(false)
     }
   }
 
-  const eliminarFactura = async invoice => {
-    if (!window.confirm(`¿Eliminar la factura ${invoice.number}? Esta acción no se puede deshacer.`)) return
+  const anularFactura = async invoice => {
+    if (!window.confirm(`¿Anular la factura ${invoice.number}? Se conservarán la factura y sus pagos en el historial.`)) return
+    setSaving(true)
     setError('')
     try {
-      await api.delete(`/taller/facturas/${invoice.id}`)
-      setInvoices(current => current.filter(item => item.id !== invoice.id))
-      setNotice(`Factura ${invoice.number} eliminada`)
+      await api.patch(`/facturacion/${invoice.id}/anular`)
+      setNotice(`Factura ${invoice.number} anulada; el historial se conservó`)
       await cargarFacturacion()
+      if (selectedInvoice?.id === invoice.id) await cargarDetalle(invoice)
     } catch (requestError) {
       setError(errorMessage(requestError))
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -121,10 +184,19 @@ function Facturacion() {
       <header className="billing-header">
         <div>
           <span className="billing-eyebrow">ADMINISTRACIÓN · TALLER</span>
-          <h1>Facturación</h1>
-          <p>Emisión y seguimiento de cobros asociados a órdenes de trabajo.</p>
+          <h1>Facturación interna</h1>
+          <p>Control de cobros y pagos del taller, sin emisión tributaria ni envío al SII.</p>
         </div>
-        <button className="billing-refresh" type="button" onClick={cargarFacturacion} disabled={loading} title="Actualizar datos">
+        <button
+          className="billing-refresh"
+          type="button"
+          onClick={() => {
+            cargarFacturacion()
+            cargarEstadoSii()
+          }}
+          disabled={loading || siiLoading}
+          title="Actualizar datos"
+        >
           <FiRefreshCw /> Actualizar
         </button>
       </header>
@@ -163,12 +235,31 @@ function Facturacion() {
           statusFilter={statusFilter}
           onSearchChange={setSearch}
           onStatusFilterChange={setStatusFilter}
-          onUpdateStatus={actualizarEstado}
-          onDelete={eliminarFactura}
+          onView={cargarDetalle}
+          onCancel={anularFactura}
           formatMoney={money}
           formatDate={dateLabel}
         />
       </section>
+
+      <FacturaElectronicaSection
+        status={siiStatus}
+        loading={siiLoading}
+        error={siiError}
+      />
+
+      {selectedInvoice && (
+        <FacturaInternaDetail
+          invoice={selectedInvoice}
+          saving={saving}
+          error={error}
+          formatMoney={money}
+          formatDate={dateLabel}
+          onClose={() => setSelectedInvoice(null)}
+          onAddPayment={registrarPago}
+          onCancel={() => anularFactura(selectedInvoice)}
+        />
+      )}
     </main>
   )
 }

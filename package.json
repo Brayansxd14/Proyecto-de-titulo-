@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "start": "concurrently \"npm run server\" \"npm run client\"",
     "server": "nodemon src/Backend/server.js",
-    "client": "cd src/Frontend && npm run dev"
+    "client": "vite"
   },
   "dependencies": {
     "@supabase/server": "^1.4.1",

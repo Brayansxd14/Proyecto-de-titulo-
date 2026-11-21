@@ -14,7 +14,8 @@ export default function ProductosTableSection({
               <th>Repuesto</th>
               <th>Tipo</th>
               <th>Cantidad</th>
-              <th>Precio</th>
+              <th>Precio de venta</th>
+              <th>Costo unitario</th>
               <th>Proveedor</th>
               <th>Estado</th>
               <th>Acciones</th>
@@ -28,6 +29,7 @@ export default function ProductosTableSection({
                 <td>{producto.tipo || "-"}</td>
                 <td>{producto.cantidad}</td>
                 <td>${Number(producto.precio || 0).toLocaleString("es-CL")}</td>
+                <td>${Number(producto.costo_unitario || 0).toLocaleString("es-CL")}</td>
                 <td>{producto.proveedor || "-"}</td>
                 <td>
                   <span className={`inventario-status ${producto.estado === "con stock" ? "available" : "empty"}`}>

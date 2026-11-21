@@ -1,0 +1,30 @@
+.usuarios-actions,
+.usuarios-import form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.usuarios-import {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.usuarios-import form small,
+.usuarios-import form label {
+  flex-basis: 100%;
+}
+
+.usuarios-import-result {
+  display: grid;
+  gap: 6px;
+}
+
+.usuarios-import-result ul {
+  margin: 0;
+}

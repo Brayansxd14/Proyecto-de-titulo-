@@ -1,10 +1,9 @@
-/* eslint-disable no-undef */
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import '../styles/Login.css'
 import { useState } from 'react'
 
-const Login = () => {
+const Login = ({ onLogin }) => {
   const [form, setForm] = useState({ email: '', password: '' })
   const [mensaje, setMensaje] = useState('')
   const [loading, setLoading] = useState(false)
@@ -27,6 +26,7 @@ const Login = () => {
       const { token, usuario } = response.data
 
       localStorage.setItem('token', token)
+      onLogin(usuario)
       setMensaje(`Bienvenido ${usuario.nombre}, rol: ${usuario.rol}`)
       navigate('/inicio')
     } catch (err) {
